@@ -66,50 +66,71 @@
 <div id="ftr"></div>
 
 <script src="assets/js/data.js"></script>
+<script src="assets/js/db.js"></script>
 <script src="assets/js/app.js"></script>
 <script>
-mount('cabinet');
+mount("cabinet");
 
-const next = param('next');
+/* Куда вернуть пользователя после входа */
+const next = param("next");
+const intent = Intent.peek();
+const backTo = next || (intent && intent.url ? intent.url.split("/").pop() : "") || "";
+
 const cards = [
-  { k: 'citizen', ic: '🧑‍💼', bg: 'var(--blue-soft)', btn: 'btn-p', h: 'Гражданин', p: 'Житель Обнинска старше 18 лет с подтверждённой учётной записью Госуслуг.',
-    li: ['Подать инициативу и собрать группу', 'Подписать заявку электронно', 'Внести свою долю картой или СБП', 'Следить за стройкой и оценить результат'],
-    btnText: 'Войти через Госуслуги' },
-  { k: 'admin', ic: '🏛️', bg: 'var(--violet-soft)', btn: 'btn-d', h: 'Администрация', p: 'Сотрудник администрации города с ролью куратора инициативного бюджетирования.',
-    li: ['Проверить смету и вынести на комиссию', 'Принять электронный пакет документов', 'Объявить закупку и опубликовать протокол', 'Принять объект и отчитаться перед жителями'],
-    btnText: 'Войти по ведомственной учётной записи' },
-  { k: 'contractor', ic: '🏗️', bg: 'var(--amber-soft)', btn: 'btn-o', h: 'Подрядчик', p: 'Организация, выигравшая закупку по 44-ФЗ. Вход через ЕСИА организации.',
-    li: ['Видеть свои контракты и сроки', 'Загрузить исполнительный график', 'Публиковать фотоотчёт по этапам', 'Отвечать на замечания жителей'],
-    btnText: 'Войти как организация' }
+  { k: "citizen", ic: "🧑‍💼", bg: "var(--blue-soft)", btn: "btn-p", h: "Гражданин",
+    p: "Житель Обнинска старше 18 лет с подтверждённой учётной записью Госуслуг.",
+    li: ["Предложить свой проект и вести черновик", "Подписать заявку электронно",
+         "Внести свою долю картой или СБП", "Оставить замечание по работам подрядчика"],
+    btnText: "Войти через Госуслуги" },
+  { k: "admin", ic: "🏛️", bg: "var(--violet-soft)", btn: "btn-d", h: "Администрация",
+    p: "Сотрудник администрации города с ролью куратора инициативного бюджетирования.",
+    li: ["Проверить заявку и сформировать смету", "Одобрить, вернуть на доработку или отклонить",
+         "Объявить торги и выбрать подрядчика", "Принять отчёты и завершить проект"],
+    btnText: "Войти по ведомственной учётной записи" },
+  { k: "contractor", ic: "🏗️", bg: "var(--amber-soft)", btn: "btn-o", h: "Подрядчик",
+    p: "Организация, участвующая в торгах по 44-ФЗ. Вход через ЕСИА организации.",
+    li: ["Видеть открытые торги и подавать заявки", "Вести исполнительный график",
+         "Отправлять отчёты с фото и документами", "Отвечать на замечания жителей"],
+    btnText: "Войти как организация" }
 ];
 
-document.getElementById('roles').innerHTML = cards.map(c => `
-  <div class="role">
+document.getElementById("roles").innerHTML = cards.map(c => {
+  const u = DB.usersByRole(c.k)[0];
+  return `<div class="role">
     <span class="ic" style="background:${c.bg}">${c.ic}</span>
     <h3>${c.h}</h3>
     <p>${c.p}</p>
-    <ul>${c.li.map(x => `<li>${x}</li>`).join('')}</ul>
-    <div class="note note-b" style="font-size:12.5px;padding:10px 12px">${ACCOUNTS[c.k].name} · ${ACCOUNTS[c.k].esia}</div>
+    <ul>${c.li.map(x => "<li>" + x + "</li>").join("")}</ul>
+    <div class="note note-b" style="font-size:12.5px;padding:10px 12px">${u.name} · ${u.esia || u.org}</div>
     <button class="btn ${c.btn} btn-full" data-r="${c.k}">${c.btnText}</button>
-  </div>`).join('');
+  </div>`;
+}).join("");
 
-document.querySelectorAll('.role button[data-r]').forEach(b => b.addEventListener('click', () => {
-  State.setRole(b.dataset.r);
-  toast('Вход выполнен: ' + ACCOUNTS[b.dataset.r].name);
-  setTimeout(() => location.href = next ? 'project.html?id=' + next : 'cabinet.html', 700);
+if (backTo) {
+  const note = document.createElement("div");
+  note.className = "note note-a mt28";
+  note.innerHTML = "<b>После входа вы вернётесь туда, откуда пришли.</b> Страница: <code>" + backTo +
+    "</code>" + (intent && intent.action ? " — незавершённое действие будет продолжено автоматически." : "");
+  document.getElementById("roles").after(note);
+}
+
+document.querySelectorAll(".role button[data-r]").forEach(b => b.addEventListener("click", () => {
+  Session.login(b.dataset.r);
+  toast("Вход выполнен: " + Session.user.name);
+  setTimeout(() => location.href = backTo || "cabinet.html", 700);
 }));
 
-document.getElementById('reset').addEventListener('click', () => {
-  State.reset();
-  toast('Демо-данные сброшены к исходному состоянию');
+document.getElementById("reset").addEventListener("click", () => {
+  DB.reset();
+  Session.logout();
+  toast("Демо-данные сброшены к исходному состоянию");
   setTimeout(() => location.reload(), 800);
 });
 
-/* Прямая ссылка вида login.html?role=admin */
-const pre = param('role');
-if (pre && ACCOUNTS[pre]) {
-  const el = document.querySelector('.role button[data-r="' + pre + '"]');
-  if (el) { el.closest('.role').style.borderColor = 'var(--blue)'; el.closest('.role').scrollIntoView({ block: 'center' }); }
+const pre = param("role");
+if (pre) {
+  const el = document.querySelector(".role button[data-r=\"" + pre + "\"]");
+  if (el) { el.closest(".role").style.borderColor = "var(--blue)"; el.closest(".role").scrollIntoView({ block: "center" }); }
 }
 </script>
 </body>

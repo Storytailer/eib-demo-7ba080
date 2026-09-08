@@ -58,7 +58,7 @@
           отчёт о работах и итоговый отчёт перед жителями.</p>
         <div class="hero-cta">
           <a class="btn btn-p btn-l" href="projects.html">Проекты города</a>
-          <a class="btn btn-o btn-l" href="submit.html">Подать инициативу</a>
+          <a class="btn btn-o btn-l" href="create.html">Предложить свой проект</a>
         </div>
         <div class="hero-note">🔐 Вход через Госуслуги (ЕСИА) · один житель — один голос · данные хранятся в РФ</div>
       </div>
@@ -219,56 +219,59 @@
 <div id="ftr"></div>
 
 <script src="assets/js/data.js"></script>
+<script src="assets/js/db.js"></script>
 <script src="assets/js/app.js"></script>
 <script>
 mount('home');
 
-/* Цифры пилота */
-document.getElementById('s1').textContent = CITY.stats.ideas;
-document.getElementById('s2').textContent = CITY.stats.projects;
-document.getElementById('s3').textContent = (CITY.stats.citizenMoney / 1000000).toFixed(2).replace('.', ',') + ' млн ₽';
-document.getElementById('s4').textContent = fmt(CITY.stats.signatures);
+/* Цифры считаются из базы, а не из статичных констант */
+const pub = DB.projects({ public: true });
+const raisedAll = DB.all('transactions').filter(t => t.status === 'confirmed').reduce((s, t) => s + t.amount, 0);
+document.getElementById('s1').textContent = DB.projects().length;
+document.getElementById('s2').textContent = pub.length;
+document.getElementById('s3').textContent = (raisedAll / 1000000).toFixed(2).replace('.', ',') + ' млн ₽';
+document.getElementById('s4').textContent = fmt(DB.all('signatures').length);
 
-/* Карточка «горячий сбор» в герое */
+/* Карточка активного сбора в герое */
 (function () {
-  const p = projects().find(x => x.stage === 'collecting');
-  const percent = pct(p);
+  const p = pub.find(x => x.status === 'collecting') || pub[0];
+  if (!p) return;
+  const percent = DB.progress(p.id);
   document.getElementById('heroCard').innerHTML = `
     <div class="between mb14">
-      <span class="chip chip-blue"><span class="dt"></span>Идёт сбор средств</span>
-      <span class="chip chip-amber">${days(p.daysLeft)}</span>
+      <span class="chip chip-blue"><span class="dt"></span>${statusOf(p).n}</span>
+      ${p.daysLeft ? '<span class="chip chip-amber">' + days(p.daysLeft) + '</span>' : ''}
     </div>
-    <h3 style="margin-bottom:6px">${p.title}</h3>
-    <div class="ploc mb14">📍 ${p.district} · ${p.addr.split('—')[0].trim()}</div>
-    <div class="money"><b>${rub(p.raised)}</b><span>цель ${rub(p.goal)}</span></div>
+    <h3 style="margin-bottom:6px">${esc(p.title)}</h3>
+    <div class="ploc mb14">📍 ${esc(p.district)} · ${esc(p.addr.split('—')[0].trim())}</div>
+    <div class="money"><b>${rub(DB.raised(p.id))}</b><span>цель ${rub(p.goal)}</span></div>
     <div class="bar bar-lg mt8"><i style="width:${percent}%"></i></div>
-    <div class="left-sum mt14"><span>Осталось собрать</span><b>${rub(left(p))}</b></div>
+    <div class="left-sum mt14"><span>Осталось собрать</span><b>${rub(DB.leftToRaise(p.id))}</b></div>
     <div class="facts mt14">
       <div><span>Стоимость проекта</span><b>${rub(p.cost)}</b></div>
       <div><span>Доля жителей</span><b>${p.sharePct}%</b></div>
-      <div><span>Уже поддержали</span><b>${p.donors} чел.</b></div>
+      <div><span>Уже поддержали</span><b>${DB.donors(p.id)} чел.</b></div>
     </div>
     <a class="btn btn-p btn-full mt14" href="project.html?id=${p.id}">Поддержать проект</a>`;
 })();
 
 /* Плитки этапов */
 document.getElementById('tiles').innerHTML = [
-  ['Заявка и подписи', 'Инициатор заполняет форму и смету построчно, группа от 10 жителей подписывает заявку через Госуслуги.', 'Итог: заявка, протокол собрания и реестр подписей'],
-  ['Сбор средств', 'Жители и бизнес вносят долю софинансирования картой или СБП. Видно, сколько собрано и сколько осталось.', 'Итог: договор пожертвования, чек, реестр взносов'],
-  ['Отправка документов', 'Платформа собирает пакет, подписывает его через ЕСИА и отправляет в администрацию с входящим номером.', 'Итог: входящий номер и срок ответа администрации'],
-  ['Выбор подрядчика', 'Администрация публикует закупку по 44-ФЗ. На платформе видно заявки, цены, опыт и протокол.', 'Итог: протокол и муниципальный контракт'],
-  ['Отчёт подрядчика', 'Подрядчик ведёт исполнительный график и выкладывает фотоотчёт. Жители фиксируют замечания.', 'Итог: график, фото по датам, акты КС-2'],
-  ['Завершён', 'Итоговый отчёт: сколько собрали жители, сколько добавил город, куда ушла экономия и что вернули.', 'Итог: отчёт, возврат остатка, оценка жителей']
+  ['Заявка и проверка', 'Житель описывает идею обычными словами, платформа помогает собрать заявку, а смету формирует и утверждает администрация.', 'Итог: заявка, смета, решение администрации'],
+  ['Сбор подписей', 'Группа от 10 жителей подписывает заявку через Госуслуги. Один житель — одна подпись, дубликаты система не создаёт.', 'Итог: протокол собрания и реестр подписей'],
+  ['Сбор средств', 'Жители вносят долю софинансирования картой или СБП. Каждый платёж — отдельная транзакция со своим статусом.', 'Итог: договор пожертвования, чек, реестр взносов'],
+  ['Документы', 'Платформа собирает пакет, подписывает его через ЕСИА и отправляет в администрацию с входящим номером.', 'Итог: входящий номер и срок ответа'],
+  ['Торги и подрядчик', 'Администрация объявляет закупку, подрядчики подают заявки, комиссия выбирает победителя.', 'Итог: протокол и муниципальный контракт'],
+  ['Реализация и отчёт', 'Подрядчик отчитывается по этапам с фото и документами, жители оставляют замечания, администрация принимает работы.', 'Итог: акты, фотоотчёт, итоговый отчёт']
 ].map((t, i) => `<div class="tile t${i + 1}">
     <span class="num">ЭТАП ${i + 1}</span><h3>${t[0]}</h3><p>${t[1]}</p><div class="out">${t[2]}</div>
   </div>`).join('');
 
-
 /* Проекты */
 document.getElementById('collecting').innerHTML =
-  projects().filter(p => p.stage === 'collecting' || p.stage === 'idea').map(projectCard).join('');
+  pub.filter(p => ['collecting', 'goal', 'signing'].includes(p.status)).slice(0, 3).map(projectCard).join('');
 document.getElementById('pipeline').innerHTML =
-  projects().filter(p => ['documents', 'contractor', 'works', 'done'].includes(p.stage)).slice(0, 3).map(projectCard).join('');
+  pub.filter(p => ['documents', 'procurement', 'works', 'reporting', 'done'].includes(p.status)).slice(0, 3).map(projectCard).join('');
 </script>
 </body>
 </html>

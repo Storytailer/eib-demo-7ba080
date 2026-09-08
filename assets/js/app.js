@@ -1,40 +1,51 @@
-/* ЭИБ · общий скрипт: роли, состояние, шапка/подвал, карточки проектов */
+/* ЭИБ · общий скрипт: сессия, шапка/подвал, логотип, обложки, карточки проектов.
+   Данные берутся из демо-БД (assets/js/db.js), все сущности связаны идентификаторами. */
 
-/* ---------- Состояние (демо: localStorage) ---------- */
-const KEY = 'eib-demo-state-v1';
-
-const State = {
-  data: { role: 'guest', over: {}, my: [] },
-  load() {
-    try { this.data = Object.assign(this.data, JSON.parse(localStorage.getItem(KEY) || '{}')); }
-    catch (e) { /* приватный режим — работаем без сохранения */ }
-    return this.data;
+/* ---------- Сессия ---------- */
+const Session = {
+  get role() { return (DB.data.session && DB.data.session.role) || 'guest'; },
+  get userId() { return DB.data.session && DB.data.session.userId; },
+  get user() { return this.userId ? DB.user(this.userId) : null; },
+  login(role) {
+    const u = DB.data.users.find(x => x.role === role);
+    DB.data.session = { role, userId: u ? u.id : null };
+    DB.save();
   },
-  save() {
-    try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) {}
-  },
-  role() { return this.data.role || 'guest'; },
-  setRole(r) { this.data.role = r; this.save(); },
-  account() { return ACCOUNTS[this.role()] || null; },
-  over(id) { return this.data.over[id] || (this.data.over[id] = {}); },
-  patch(id, obj) { Object.assign(this.over(id), obj); this.save(); },
-  reset() { this.data = { role: 'guest', over: {}, my: [] }; this.save(); }
+  logout() { DB.data.session = { role: 'guest' }; DB.save(); },
+  is(role) { return this.role === role; }
 };
-State.load();
 
-/* ---------- Данные с учётом действий пользователя ---------- */
-function projects() {
-  return PROJECTS.map(p => Object.assign({}, p, State.data.over[p.id] || {}));
+/* Куда вернуть пользователя после входа и что он собирался сделать */
+const Intent = {
+  set(url, action, payload) {
+    try { sessionStorage.setItem('eib-intent', JSON.stringify({ url, action, payload })); } catch (e) {}
+  },
+  take() {
+    try {
+      const raw = sessionStorage.getItem('eib-intent');
+      sessionStorage.removeItem('eib-intent');
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  },
+  peek() {
+    try { const raw = sessionStorage.getItem('eib-intent'); return raw ? JSON.parse(raw) : null; }
+    catch (e) { return null; }
+  }
+};
+
+/* Требуется вход: запоминаем страницу и намерение, уводим на форму входа */
+function requireAuth(role, action, payload) {
+  if (Session.role === role) return true;
+  Intent.set(location.pathname + location.search, action, payload || null);
+  toast('Для этого действия нужен вход через Госуслуги');
+  setTimeout(() => location.href = 'login.html?role=' + role +
+    '&next=' + encodeURIComponent(location.pathname.split('/').pop() + location.search), 900);
+  return false;
 }
-function project(id) { return projects().find(p => p.id === id) || null; }
-function stage(key) { return STAGES.find(s => s.key === key) || STAGES[0]; }
-function stageIndex(key) { return STAGES.findIndex(s => s.key === key); }
 
 /* ---------- Формат ---------- */
 const fmt = n => (n === null || n === undefined) ? '—' : Number(n).toLocaleString('ru-RU');
 const rub = n => fmt(n) + ' ₽';
-const pct = p => p.goal ? Math.min(100, Math.round(p.raised / p.goal * 100)) : 0;
-const left = p => Math.max(0, p.goal - p.raised);
 function plural(n, one, few, many) {
   const m10 = n % 10, m100 = n % 100;
   if (m10 === 1 && m100 !== 11) return one;
@@ -42,6 +53,10 @@ function plural(n, one, few, many) {
   return many;
 }
 const days = n => n + ' ' + plural(n, 'день', 'дня', 'дней');
+const statusOf = p => STATUS[p.status] || STATUS.draft;
+const phaseOf = p => statusOf(p).phase;
+const phaseIndex = key => PHASES.findIndex(f => f.key === key);
+const ROLE_LABEL = { citizen: 'Житель', admin: 'Администрация', contractor: 'Подрядчик', guest: 'Гость' };
 
 /* ---------- Логотип ----------
    Знак: гексагон, урна для голосования и бюллетень с галочкой — голос жителя,
@@ -73,9 +88,7 @@ function logo(cls) {
   </a>`;
 }
 
-/* ---------- Обложки проектов ----------
-   Векторные сцены по категориям: одинаковый стиль, читаются на любом фоне.
-   Если у проекта задано поле `photo` (файл в assets/covers/), показывается фотография. */
+/* ---------- Обложки проектов ---------- */
 const COVER_ART = {
   'Благоустройство': `
     <path d="M0 168h400v40H0z" fill="rgba(255,255,255,.10)"/>
@@ -157,7 +170,6 @@ function coverArt(p) {
 }
 
 /* ---------- Партнёры ---------- */
-/* Файл логотипа не найден → возвращаемся к монограмме, без «битой картинки». */
 function logoFallback(img) {
   const s = document.createElement('span');
   s.className = 'plog-mono';
@@ -169,32 +181,22 @@ function logoFallback(img) {
 
 function partnerTile(p, compact) {
   const s = PARTNER_STATUS[p.status] || PARTNER_STATUS.planned;
-  /* Пока файла логотипа нет в assets/logos/ — показываем монограмму в цветах организации. */
   const tint = p.tint || '#12275C';
   const mono = `<span class="plog-mono" style="color:${tint};background:${tint}18">${p.short}</span>`;
   const mark = p.logo
     ? `<img src="assets/logos/${p.logo}" alt="${p.name}" data-mono="${p.short}" data-tint="${tint}" onerror="logoFallback(this)">`
     : mono;
-  if (compact) {
-    return `<span class="plog-min" title="${p.full} — ${s[1]}">${mark}<span>${p.name}</span></span>`;
-  }
+  if (compact) return `<span class="plog-min" title="${p.full} — ${s[1]}">${mark}<span>${p.name}</span></span>`;
   return `<div class="plog">
     <div class="plog-mark">${mark}</div>
-    <div class="plog-tx">
-      <b>${p.name}</b>
-      <small>${p.note}</small>
-      <span class="chip ${s[0]}">${s[1]}</span>
-    </div>
+    <div class="plog-tx"><b>${p.name}</b><small>${p.note}</small><span class="chip ${s[0]}">${s[1]}</span></div>
   </div>`;
 }
-
-function partners(compact) {
-  return PARTNERS.map(p => partnerTile(p, compact)).join('');
-}
+function partners(compact) { return PARTNERS.map(p => partnerTile(p, compact)).join(''); }
 
 /* ---------- Шапка и подвал ---------- */
 function header(active) {
-  const acc = State.account();
+  const acc = Session.user;
   const nav = [
     ['index.html', 'Главная', 'home'],
     ['projects.html', 'Проекты', 'projects'],
@@ -209,16 +211,15 @@ function header(active) {
        </a>
        <button class="btn btn-o btn-s btn-hide-sm" id="logout">Выйти</button>`
     : `<a class="btn btn-o btn-s btn-hide" href="login.html">Войти</a>
-       <a class="btn btn-p btn-s btn-hide-sm" href="submit.html">Подать инициативу</a>`;
+       <a class="btn btn-p btn-s btn-hide-sm" href="create.html">Предложить проект</a>`;
 
   return `<header class="hdr"><div class="wrap hdr-in">
     ${logo()}
     <nav class="mainnav" id="mainnav">
       ${nav.map(([h, t, k]) => `<a href="${h}" class="${k === active ? 'on' : ''}">${t}</a>`).join('')}
-      ${acc
-        ? `<a href="#" class="mob-only" id="logoutM">Выйти · ${ROLE_LABEL[acc.role]}</a>`
-        : `<a href="login.html" class="mob-only">Войти через Госуслуги</a>`}
-      <a href="submit.html" class="mob-only">Подать инициативу</a>
+      ${acc ? `<a href="#" class="mob-only" id="logoutM">Выйти · ${ROLE_LABEL[acc.role]}</a>`
+            : `<a href="login.html" class="mob-only">Войти через Госуслуги</a>`}
+      <a href="create.html" class="mob-only">Предложить проект</a>
     </nav>
     <div class="hdr-act">${right}<button class="burger" id="burger" aria-label="Меню">☰</button></div>
   </div></header>`;
@@ -238,7 +239,7 @@ function footer() {
           <li><a href="projects.html">Проекты города</a></li>
           <li><a href="how.html">Как это работает</a></li>
           <li><a href="about.html">О проекте и партнёры</a></li>
-          <li><a href="submit.html">Подать инициативу</a></li>
+          <li><a href="create.html">Предложить проект</a></li>
           <li><a href="login.html">Вход для участников</a></li>
         </ul>
       </div>
@@ -276,53 +277,58 @@ function footer() {
 
 /* ---------- Карточка проекта ---------- */
 function projectCard(p) {
-  const s = stage(p.stage);
-  const percent = pct(p);
+  const st = statusOf(p);
+  const ph = st.phase;
   let bottom = '';
 
-  if (p.stage === 'collecting') {
+  if (ph === 'collecting') {
+    const raised = DB.raised(p.id), percent = DB.progress(p.id), left = DB.leftToRaise(p.id);
     bottom = `
-      <div class="money"><b>${rub(p.raised)}</b><span>из ${rub(p.goal)}</span></div>
+      <div class="money"><b>${rub(raised)}</b><span>из ${rub(p.goal)}</span></div>
       <div class="bar ${percent >= 100 ? 'ok' : ''}"><i style="width:${percent}%"></i></div>
-      <div class="left-sum"><span>Осталось собрать</span><b>${rub(left(p))}</b></div>
-      <div class="pmeta"><span class="left">${percent}% · ${p.donors} ${plural(p.donors, 'житель', 'жителя', 'жителей')}</span>
+      <div class="left-sum ${percent >= 100 ? 'done' : ''}">
+        <span>${percent >= 100 ? 'Цель достигнута' : 'Осталось собрать'}</span><b>${rub(left)}</b></div>
+      <div class="pmeta"><span class="left">${percent}% · ${DB.donors(p.id)} ${plural(DB.donors(p.id), 'плательщик', 'плательщика', 'плательщиков')}</span>
         <span class="right">${p.daysLeft ? days(p.daysLeft) + ' до конца' : ''}</span></div>`;
-  } else if (p.stage === 'idea') {
-    const sp = Math.min(100, Math.round(p.signatures.count / p.signatures.need * 100));
+  } else if (ph === 'signing' || ph === 'idea') {
+    const have = DB.signatures(p.id).length;
+    const sp = Math.min(100, Math.round(have / (p.signNeed || 10) * 100));
     bottom = `
-      <div class="money"><b>${p.signatures.count} из ${p.signatures.need}</b><span>подписей</span></div>
+      <div class="money"><b>${have} из ${p.signNeed}</b><span>подписей</span></div>
       <div class="bar warn"><i style="width:${sp}%"></i></div>
-      <div class="pmeta"><span class="left">Смета ${rub(p.cost)}</span><span class="right">${p.votes} ${plural(p.votes, "голос", "голоса", "голосов")}</span></div>`;
-  } else if (p.stage === 'done') {
+      <div class="pmeta"><span class="left">Смета ${rub(p.cost)}</span>
+        <span class="right">${p.ownerName}</span></div>`;
+  } else if (ph === 'done') {
     bottom = `
-      <div class="money"><b>Реализован</b><span>${p.report.openedAt}</span></div>
+      <div class="money"><b>${p.status === 'refunded' ? 'Средства возвращены' : 'Реализован'}</b>
+        <span>${p.report ? p.report.openedAt : ''}</span></div>
       <div class="bar ok"><i style="width:100%"></i></div>
-      <div class="left-sum done"><span>Жители вложили</span><b>${rub(p.raised)}</b></div>
-      <div class="pmeta"><span class="left">Оценка ${String(p.report.rating).replace('.', ',')} из 5</span>
-        <span class="right">${p.report.votes} ${plural(p.report.votes, "оценка", "оценки", "оценок")}</span></div>`;
+      <div class="left-sum done"><span>Жители вложили</span><b>${rub(DB.raised(p.id))}</b></div>
+      <div class="pmeta"><span class="left">${p.report ? 'Оценка ' + String(p.report.rating).replace('.', ',') + ' из 5' : ''}</span>
+        <span class="right">${p.report ? p.report.votes + ' оценок' : ''}</span></div>`;
   } else {
     const map = {
-      documents: ['Пакет документов отправлен', p.docsPack ? p.docsPack.incoming : ''],
-      contractor: ['Закупка по 44-ФЗ', p.tender ? '№ ' + p.tender.number : ''],
-      works: ['Работы выполнены на ' + (p.works ? p.works.progress : 0) + '%', p.works ? p.works.contractor : '']
+      documents: ['Пакет документов у администрации', p.docsPack ? p.docsPack.incoming : ''],
+      procurement: ['Идут торги по 44-ФЗ', DB.bids(p.id).length + ' ' + plural(DB.bids(p.id).length, 'заявка', 'заявки', 'заявок')],
+      works: ['Работы выполнены на ' + DB.worksProgress(p.id) + '%', p.contract ? (DB.user(p.contract.contractorId) || {}).name || '' : '']
     };
-    const m = map[p.stage] || ['', ''];
-    const w = p.stage === 'works' ? p.works.progress : 100;
+    const m = map[ph] || [st.n, ''];
+    const w = ph === 'works' ? DB.worksProgress(p.id) : 100;
     bottom = `
-      <div class="money"><b>${m[0]}</b></div>
-      <div class="bar ${p.stage === 'works' ? '' : 'ok'}"><i style="width:${w}%"></i></div>
+      <div class="money"><b style="font-size:17px">${m[0]}</b></div>
+      <div class="bar ${ph === 'works' ? '' : 'ok'}"><i style="width:${w}%"></i></div>
       <div class="pmeta"><span class="left">${rub(p.cost)}</span><span class="right">${m[1]}</span></div>`;
   }
 
   return `<a class="pcard" href="project.html?id=${p.id}">
     <div class="pcover ${p.cover}">
       ${coverArt(p)}
-      <span class="chip"><span class="dt"></span>${s.name}</span>
+      <span class="chip"><span class="dt"></span>${st.n}</span>
       <span class="cat-pill">${p.cat}</span>
     </div>
     <div class="pbody">
       <h3>${p.title}</h3>
-      <div class="ploc">📍 ${p.district} · ${p.addr.split('—')[0].trim()}</div>
+      <div class="ploc">📍 ${p.district}${p.addr ? ' · ' + p.addr.split('—')[0].trim() : ''}</div>
       ${bottom}
     </div>
   </a>`;
@@ -335,41 +341,46 @@ function toast(msg) {
   t.textContent = msg;
   requestAnimationFrame(() => t.classList.add('on'));
   clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.remove('on'), 3400);
+  t._t = setTimeout(() => t.classList.remove('on'), 3600);
 }
 
 function openModal(id) { const m = document.getElementById(id); if (m) m.classList.add('on'); }
 function closeModal(id) { const m = document.getElementById(id); if (m) m.classList.remove('on'); }
+function param(n) { return new URLSearchParams(location.search).get(n); }
+const esc = s => String(s == null ? '' : s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
 
-function tabs(root) {
-  const box = document.querySelector(root);
-  if (!box) return;
-  box.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
-    box.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
-    document.querySelectorAll(b.dataset.scope + ' .tab-pane').forEach(p =>
-      p.classList.toggle('on', p.dataset.pane === b.dataset.tab));
-  }));
+/* Фотографии в демо: файл не сохраняется, сохраняется его «карточка» */
+const PHOTO_TINTS = [
+  'linear-gradient(135deg,#2B5BF5,#12275C)', 'linear-gradient(135deg,#12A05C,#0B6B54)',
+  'linear-gradient(135deg,#F0A020,#D9542B)', 'linear-gradient(135deg,#7a8ba6,#3d4e6b)',
+  'linear-gradient(135deg,#0F9BC4,#125C8C)', 'linear-gradient(135deg,#a08b6a,#5d4a2e)'
+];
+function fakePhoto(caption, kind) {
+  return { id: uid('ph'), caption: caption || 'Фотография', kind: kind || 'progress',
+    css: PHOTO_TINTS[Math.floor(Math.random() * PHOTO_TINTS.length)] };
+}
+function photoGrid(photos) {
+  if (!photos || !photos.length) return '<p class="muted">Фотографий нет.</p>';
+  const label = { before: 'ДО', after: 'ПОСЛЕ', progress: '' };
+  return `<div class="shots">${photos.map(f => `<div class="shot" style="background:${f.css}">
+    ${label[f.kind] ? '<span class="shot-tag">' + label[f.kind] + '</span>' : ''}${esc(f.caption)}</div>`).join('')}</div>`;
 }
 
-function param(n) { return new URLSearchParams(location.search).get(n); }
-
-/* ---------- Демо-переключатель ролей ----------
-   Показывает один и тот же экран глазами жителя, администрации и подрядчика
-   без выхода и повторного входа. В боевой версии этой панели нет. */
+/* ---------- Демо-переключатель ролей ---------- */
 function demoBar() {
   try { if (sessionStorage.getItem('eib-demo-bar') === 'off') return; } catch (e) {}
   const roles = [['guest', 'Гость'], ['citizen', 'Житель'], ['admin', 'Администрация'], ['contractor', 'Подрядчик']];
   const el = document.createElement('div');
   el.className = 'demo-bar';
   el.innerHTML = `<b>Демо · смотреть как</b>` +
-    roles.map(([k, n]) => `<button data-r="${k}" class="${State.role() === k ? 'on' : ''}">${n}</button>`).join('') +
+    roles.map(([k, n]) => `<button data-r="${k}" class="${Session.role === k ? 'on' : ''}">${n}</button>`).join('') +
     `<button class="x" title="Скрыть панель">×</button>`;
   document.body.appendChild(el);
 
   el.querySelectorAll('button[data-r]').forEach(b => b.addEventListener('click', () => {
-    State.setRole(b.dataset.r);
+    if (b.dataset.r === 'guest') Session.logout(); else Session.login(b.dataset.r);
     toast(b.dataset.r === 'guest' ? 'Режим гостя: видно только публичную часть'
-      : 'Вы смотрите как ' + ACCOUNTS[b.dataset.r].name);
+      : 'Вы смотрите как ' + Session.user.name);
     setTimeout(() => location.reload(), 550);
   }));
   el.querySelector('.x').addEventListener('click', () => {
@@ -389,7 +400,7 @@ function mount(active) {
   if (b) b.addEventListener('click', () => document.getElementById('mainnav').classList.toggle('open'));
 
   const bye = () => {
-    State.setRole('guest');
+    Session.logout();
     toast('Вы вышли из системы');
     setTimeout(() => location.href = 'index.html', 600);
   };

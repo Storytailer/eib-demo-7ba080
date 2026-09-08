@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Предложить проект · ЭИБ Обнинск</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%2312275C'/%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M24 6 39 14.5v17L24 40 9 31.5v-17z' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28v6.5a2.4 2.4 0 0 0 2.4 2.4h13.2a2.4 2.4 0 0 0 2.4-2.4V28' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28h4M29 28h4' stroke='%23ffffff' stroke-width='2'/%3E%3Cg transform='rotate(-16 24 19)'%3E%3Crect x='20' y='11' width='8.4' height='16' rx='1.4' fill='%23ffffff'/%3E%3Cpath d='m21.9 19 2.1 2.2 4-5.4' stroke='%23E32C26' stroke-width='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="hdr"></div>
+
+<section class="pagehead">
+  <div class="wrap">
+    <div class="crumbs"><a href="index.html">Главная</a> → Предложить проект</div>
+    <div class="between">
+      <div style="max-width:730px">
+        <span class="eyebrow">Заявка жителя · 4 шага</span>
+        <h2 class="mt8">Расскажите, что нужно вашему двору или улице</h2>
+        <p class="lead mt8">Смету составлять не нужно. Опишите проблему обычными словами — платформа
+          поможет собрать заявку, а статьи расходов сформирует и проверит специалист администрации.</p>
+      </div>
+      <div class="facts facts-side">
+        <div><span>Черновик</span><b id="dStatus">не сохранён</b></div>
+        <div><span>Лимит проекта</span><b id="dLimit">—</b></div>
+        <div><span>Нужно подписей</span><b>10 жителей 18+</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap split">
+    <div>
+      <div class="steps mb28" id="wsteps" style="grid-template-columns:repeat(4,1fr)"></div>
+
+      <!-- ШАГ 1 -->
+      <div class="card wstep" data-step="1">
+        <h3 class="mb8">1. Ваша идея<span class="who who-i">пишет житель</span></h3>
+        <p class="muted mb20">Одно-два предложения обычным языком. Например:
+          «Хочу установить освещение возле школы № 16 — вечером дети идут в темноте».</p>
+        <div class="field"><label>Что нужно сделать?</label>
+          <textarea class="inp" id="f-idea" placeholder="Например: поставить фонари вдоль тропинки от дома до школы"></textarea>
+          <div class="hint">Это главное поле. Всё остальное платформа поможет заполнить.</div></div>
+        <div class="row2">
+          <div class="field"><label>Категория</label>
+            <select class="inp" id="f-cat">
+              <option>Благоустройство</option><option>Детская площадка</option><option>Спорт</option>
+              <option>Освещение</option><option>Дороги и тротуары</option><option>Культура и досуг</option>
+            </select></div>
+          <div class="field"><label>Микрорайон</label>
+            <select class="inp" id="f-dist">
+              <option>Старый город</option><option>Центр</option><option>Заовражье</option>
+              <option>Мкрн 27</option><option>Мкрн 38</option><option>Мкрн 51</option>
+            </select></div>
+        </div>
+        <div class="field"><label>Адрес или ориентир</label>
+          <input class="inp" id="f-addr" placeholder="Улица, дом, ближайший ориентир"></div>
+        <div class="between">
+          <button class="btn btn-ghost" id="saveDraft1">Сохранить черновик</button>
+          <button class="btn btn-p" data-go="2">Дальше</button>
+        </div>
+      </div>
+
+      <!-- ШАГ 2 -->
+      <div class="card wstep" data-step="2" style="display:none">
+        <h3 class="mb8">2. Зачем это нужно<span class="who who-p">подсказывает платформа</span></h3>
+        <p class="muted mb20">Эти три ответа администрация проверяет в первую очередь: проблема,
+          результат и сколько людей он касается. Можно взять готовую формулировку и поправить под себя.</p>
+        <div class="field"><label>Название проекта</label>
+          <input class="inp" id="f-title" placeholder="Например: Освещение тропы к школе № 16">
+          <div class="flexr mt8" id="titleHints"></div></div>
+        <div class="field"><label>Какая сейчас проблема</label>
+          <textarea class="inp" id="f-prob" placeholder="Что не так сейчас, когда это мешает, были ли обращения"></textarea>
+          <div class="flexr mt8" id="probHints"></div></div>
+        <div class="field"><label>Что получится в результате</label>
+          <textarea class="inp" id="f-res" placeholder="Измеримый результат: сколько метров, штук, для скольких жителей"></textarea>
+          <div class="flexr mt8" id="resHints"></div></div>
+        <div class="row2">
+          <div class="field"><label>Скольких жителей касается</label>
+            <input class="inp" id="f-people" type="number" min="1" placeholder="Например: 900"></div>
+          <div class="field"><label>Когда хотелось бы реализовать</label>
+            <select class="inp" id="f-when">
+              <option>Ближайший сезон</option><option>В течение года</option><option>Не срочно</option>
+            </select></div>
+        </div>
+        <div class="between">
+          <button class="btn btn-ghost" data-go="1">Назад</button>
+          <button class="btn btn-p" data-go="3">Дальше</button>
+        </div>
+      </div>
+
+      <!-- ШАГ 3 -->
+      <div class="card wstep" data-step="3" style="display:none">
+        <h3 class="mb8">3. Что примерно потребуется<span class="who who-p">черновой расчёт платформы</span></h3>
+        <p class="muted mb20">Отметьте, что нужно, и укажите примерное количество — «на глаз» этого
+          достаточно. Платформа посчитает ориентировочную стоимость по справочнику типовых работ.
+          <b>Итоговую смету составит и утвердит администрация.</b></p>
+        <div id="catalog"></div>
+        <div class="field mt20"><label>Что-то ещё, чего нет в списке</label>
+          <input class="inp" id="f-extra" placeholder="Например: перенести скамейку от дороги">
+          <div class="hint">Поле не заполняется автоматически — напишите своими словами, специалист учтёт это в смете.</div></div>
+        <div class="facts mt20">
+          <div><span>Ориентировочная стоимость</span><b id="estTotal">0 ₽</b></div>
+          <div><span>Лимит инициативного проекта</span><b id="estLimit">—</b></div>
+          <div><span>Ориентировочная доля жителей (10%)</span><b id="estShare">0 ₽</b></div>
+        </div>
+        <div id="limitNote"></div>
+        <div class="between mt20">
+          <button class="btn btn-ghost" data-go="2">Назад</button>
+          <button class="btn btn-p" data-go="4">Дальше</button>
+        </div>
+      </div>
+
+      <!-- ШАГ 4 -->
+      <div class="card wstep" data-step="4" style="display:none">
+        <h3 class="mb8">4. Проверка и отправка<span class="who who-a">дальше проверяет администрация</span></h3>
+        <p class="muted mb20">Так заявка будет выглядеть для специалиста. Черновик можно сохранить
+          и вернуться к нему позже — он ждёт в разделе «Мои проекты».</p>
+        <div id="preview"></div>
+        <div class="note note-b mt20"><b>Что будет дальше.</b> Заявка попадёт в очередь администрации:
+          специалист проверит данные, сформирует смету построчно и вынесет решение — одобрить,
+          вернуть на доработку или отклонить с обоснованием. После одобрения проект публикуется
+          и начинается сбор подписей жителей.</div>
+        <div class="between mt28">
+          <button class="btn btn-ghost" data-go="3">Назад</button>
+          <div class="flexr">
+            <button class="btn btn-o" id="saveDraft">Сохранить черновик</button>
+            <button class="btn btn-g" id="send">Отправить заявку</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="sticky">
+        <div class="card">
+          <h4 class="mb14">Предварительный просмотр</h4>
+          <div class="pcover cv-1" id="pv-cover" style="border-radius:14px;height:124px"></div>
+          <h3 class="mt14" id="pv-title">Название проекта</h3>
+          <div class="ploc mb14" id="pv-loc">📍 микрорайон · адрес</div>
+          <div class="facts">
+            <div><span>Ориентировочно</span><b id="pv-cost">0 ₽</b></div>
+            <div><span>Доля жителей</span><b id="pv-goal">0 ₽</b></div>
+            <div><span>Статус</span><b id="pv-status">черновик</b></div>
+          </div>
+        </div>
+        <div class="card">
+          <h4 class="mb14">Кто что делает дальше</h4>
+          <div class="doc"><span class="ic">🧑</span><div class="tx"><b>Житель</b><small>идея, место, примерный объём</small></div></div>
+          <div class="doc"><span class="ic wait">🏛️</span><div class="tx"><b>Администрация</b><small>смета построчно, проверка, решение</small></div></div>
+          <div class="doc"><span class="ic">⚙️</span><div class="tx"><b>Платформа</b><small>документы, подписи, сбор средств</small></div></div>
+          <div class="doc"><span class="ic ok">🏗️</span><div class="tx"><b>Подрядчик</b><small>работы, график, отчёты</small></div></div>
+        </div>
+        <div class="card">
+          <h4 class="mb14">Мои проекты</h4>
+          <div id="myList"><p class="muted">Черновиков пока нет.</p></div>
+          <a class="btn btn-o btn-full mt14" href="cabinet.html">Открыть кабинет</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/db.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+mount('create');
+document.getElementById('dLimit').textContent = rub(CITY.limit);
+document.getElementById('estLimit').textContent = rub(CITY.limit);
+
+/* Справочник типовых работ: помогает жителю оценить объём без сметы */
+const CATALOG = {
+  'Освещение': [
+    { t: 'Светильник на опоре', u: 22000, unit: 'шт.', hint: 'вдоль дорожки — примерно каждые 25 м' },
+    { t: 'Автономный светильник на солнечной батарее', u: 17800, unit: 'шт.', hint: 'если рядом нет электросети' },
+    { t: 'Прокладка кабеля', u: 950, unit: 'м', hint: 'от ближайшего щита до опор' },
+    { t: 'Монтаж и подключение', u: 4300, unit: 'шт.', hint: 'на каждый светильник' }
+  ],
+  'Благоустройство': [
+    { t: 'Дорожка из тротуарной плитки', u: 2900, unit: 'м²', hint: 'ширина дорожки обычно 1,5–2 м' },
+    { t: 'Скамейка с урной', u: 14400, unit: 'компл.', hint: 'обычно 1 на 30–40 м дорожки' },
+    { t: 'Газон и кустарник', u: 620, unit: 'м²', hint: 'восстановление вытоптанной зоны' },
+    { t: 'Велопарковка', u: 46000, unit: 'шт.', hint: 'на 10–20 мест' }
+  ],
+  'Детская площадка': [
+    { t: 'Игровой комплекс 3–7 лет', u: 428000, unit: 'шт.', hint: 'горка, домик, лесенки' },
+    { t: 'Игровой комплекс 7–12 лет', u: 512000, unit: 'шт.', hint: 'канаты, турники, лазалки' },
+    { t: 'Качели, песочница, качалки', u: 186000, unit: 'компл.', hint: 'базовый набор' },
+    { t: 'Резиновое покрытие', u: 2350, unit: 'м²', hint: 'безопасное покрытие под оборудование' },
+    { t: 'Ограждение', u: 2900, unit: 'м', hint: 'со стороны проезда' }
+  ],
+  'Спорт': [
+    { t: 'Воркаут-комплекс', u: 486000, unit: 'шт.', hint: 'турники, брусья, рукоход' },
+    { t: 'Резиновое покрытие', u: 2280, unit: 'м²', hint: 'под снарядами' },
+    { t: 'Освещение площадки', u: 21000, unit: 'шт.', hint: 'мачты по периметру' },
+    { t: 'Ограждение', u: 5400, unit: 'м', hint: 'сетка по периметру' }
+  ],
+  'Дороги и тротуары': [
+    { t: 'Асфальтобетонное покрытие тротуара', u: 1180, unit: 'м²', hint: 'ширина обычно 2 м' },
+    { t: 'Бортовой камень', u: 1420, unit: 'м', hint: 'по краю тротуара' },
+    { t: 'Занижение бордюра и пандус', u: 24000, unit: 'шт.', hint: 'на каждом переходе' },
+    { t: 'Тактильная плитка', u: 3100, unit: 'м²', hint: 'на переходах' }
+  ],
+  'Культура и досуг': [
+    { t: 'Сцена / эстрада', u: 380000, unit: 'шт.', hint: 'для дворовых мероприятий' },
+    { t: 'Скамьи зрительные', u: 12800, unit: 'шт.', hint: 'ряд на 4–5 человек' },
+    { t: 'Освещение и розетки', u: 64000, unit: 'компл.', hint: 'подключение аппаратуры' }
+  ]
+};
+
+/* Подсказки-формулировки по категории */
+const HINTS = {
+  'Освещение': {
+    title: ['Освещение тропы к школе', 'Фонари во дворе'],
+    prob: ['Участок пути не освещён, вечером им пользуются школьники и пожилые жители.'],
+    res: ['Освещённый маршрут длиной 400 м: 16 светильников, безопасный проход в тёмное время.']
+  },
+  'Благоустройство': {
+    title: ['Сквер во дворе', 'Дорожки и скамейки в сквере'],
+    prob: ['Территория не благоустроена: разбитые дорожки, нет скамеек, вытоптан газон.'],
+    res: ['Прогулочная зона с дорожками, скамейками и восстановленным газоном для жителей района.']
+  },
+  'Детская площадка': {
+    title: ['Детская площадка во дворе', 'Замена аварийного игрового комплекса'],
+    prob: ['Игровое оборудование устарело и признано небезопасным, детям негде играть.'],
+    res: ['Площадка с новым оборудованием и безопасным покрытием для детей двора.']
+  },
+  'Спорт': {
+    title: ['Спортивная площадка', 'Воркаут во дворе'],
+    prob: ['В микрорайоне нет оборудованной площадки для занятий на улице.'],
+    res: ['Площадка с воркаут-комплексом и покрытием, доступная жителям бесплатно.']
+  },
+  'Дороги и тротуары': {
+    title: ['Ремонт тротуара', 'Безопасный путь к школе'],
+    prob: ['Тротуар разрушен, часть пути люди идут по проезжей части.'],
+    res: ['Отремонтированный тротуар с занижениями бордюра и пандусами.']
+  },
+  'Культура и досуг': {
+    title: ['Площадка для дворовых мероприятий'],
+    prob: ['Во дворе негде проводить праздники и встречи жителей.'],
+    res: ['Оборудованная площадка со сценой, скамьями и освещением.']
+  }
+};
+
+/* ---------- Черновик ---------- */
+let draftId = param('id');
+let picked = {};   /* выбранные позиции: индекс → количество */
+let step = 1;
+
+const F = id => document.getElementById(id);
+const val = id => (F(id).value || '').trim();
+
+function collect() {
+  const cat = val('f-cat');
+  const items = Object.entries(picked).filter(([, q]) => q > 0).map(([i, q]) => {
+    const c = CATALOG[cat][i];
+    return { id: uid('sm'), t: c.t, q: q, u: c.u, unit: c.unit, by: 'citizen' };
+  });
+  const cost = items.reduce((s, i) => s + i.q * i.u, 0);
+  return {
+    idea: val('f-idea'), cat, district: val('f-dist'), addr: val('f-addr'),
+    title: val('f-title') || (val('f-idea').slice(0, 60) || 'Новая инициатива'),
+    problem: val('f-prob'), result: val('f-res'),
+    summary: val('f-idea'),
+    plan: val('f-extra') ? 'Дополнительно от жителя: ' + val('f-extra') : '',
+    people: val('f-people'), when: val('f-when'),
+    smeta: items, cost, sharePct: 10
+  };
+}
+
+function saveDraft(silent) {
+  if (!Session.is('citizen')) {
+    Intent.set(location.pathname + location.search, 'draft');
+    toast('Чтобы сохранить черновик, нужен вход через Госуслуги');
+    setTimeout(() => location.href = 'login.html?role=citizen&next=create.html', 900);
+    return null;
+  }
+  const data = collect();
+  if (draftId) DB.updateProject(draftId, data);
+  else { const p = DB.createProject(Session.userId, data); draftId = p.id; history.replaceState(null, '', 'create.html?id=' + draftId); }
+  F('dStatus').textContent = 'сохранён ' + new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  if (!silent) toast('Черновик сохранён — можно вернуться к нему позже');
+  drawMy();
+  return draftId;
+}
+
+/* ---------- Шаги ---------- */
+const names = ['Идея', 'Обоснование', 'Объём работ', 'Проверка'];
+function drawSteps() {
+  F('wsteps').innerHTML = names.map((n, i) => {
+    const k = i + 1;
+    return `<div class="step ${k < step ? 'done' : (k === step ? 'now' : '')}">
+      <div class="k">ШАГ ${k}${k < step ? ' · ГОТОВО' : ''}</div><div class="n">${n}</div></div>`;
+  }).join('');
+  document.querySelectorAll('.wstep').forEach(s => s.style.display = (+s.dataset.step === step) ? '' : 'none');
+}
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
+  if (+b.dataset.go > step) saveDraft(true);
+  step = +b.dataset.go;
+  if (step === 4) drawPreview();
+  drawSteps();
+  window.scrollTo({ top: 200, behavior: 'smooth' });
+}));
+
+/* ---------- Каталог работ ---------- */
+function drawCatalog() {
+  const cat = val('f-cat');
+  const list = CATALOG[cat] || [];
+  F('catalog').innerHTML = list.map((c, i) => `
+    <div class="doc" style="align-items:flex-start">
+      <span class="ic ${picked[i] ? 'ok' : ''}">${picked[i] ? '✓' : '+'}</span>
+      <div class="tx"><b>${c.t}</b><small>${c.hint} · ориентировочно ${rub(c.u)} за 1 ${c.unit}</small></div>
+      <div class="act">
+        <input class="inp inp-s r" type="number" min="0" style="width:92px" data-cat="${i}"
+               value="${picked[i] || ''}" placeholder="0">
+        <span class="muted" style="font-size:12.5px">${c.unit}</span>
+      </div>
+    </div>`).join('');
+
+  document.querySelectorAll('[data-cat]').forEach(inp => inp.addEventListener('input', () => {
+    picked[inp.dataset.cat] = Math.max(0, parseFloat(inp.value) || 0);
+    calc();
+    F('catalog').querySelectorAll('.ic').forEach((ic, i) => {
+      ic.className = 'ic ' + (picked[i] ? 'ok' : '');
+      ic.textContent = picked[i] ? '✓' : '+';
+    });
+  }));
+  calc();
+}
+
+function calc() {
+  const d = collect();
+  F('estTotal').textContent = rub(d.cost);
+  F('estShare').textContent = rub(Math.round(d.cost * 0.1));
+  F('pv-cost').textContent = rub(d.cost);
+  F('pv-goal').textContent = rub(Math.round(d.cost * 0.1));
+  F('limitNote').innerHTML = d.cost > CITY.limit
+    ? `<div class="note note-r mt20"><b>Ориентировочная сумма выше лимита на ${rub(d.cost - CITY.limit)}.</b>
+        Лимит одного инициативного проекта в Обнинске — ${rub(CITY.limit)}. Уменьшите объём или
+        разделите идею на два проекта — специалист подскажет на этапе проверки.</div>`
+    : `<div class="note note-g mt20"><b>Ориентировочно ${rub(d.cost)}</b> — в пределах лимита ${rub(CITY.limit)}.
+        Это черновая оценка жителя: точные расценки и объёмы определит администрация.</div>`;
+}
+
+/* ---------- Предпросмотр ---------- */
+function drawCover() {
+  const cat = val('f-cat');
+  F('pv-cover').innerHTML = coverArt({ cat }) +
+    '<span class="chip">Черновик</span><span class="cat-pill">' + cat + '</span>';
+}
+function syncPreview() {
+  F('pv-title').textContent = val('f-title') || val('f-idea').slice(0, 50) || 'Название проекта';
+  F('pv-loc').textContent = '📍 ' + val('f-dist') + ' · ' + (val('f-addr') || 'адрес');
+  drawCover();
+}
+function drawPreview() {
+  const d = collect();
+  F('preview').innerHTML = `
+    <div class="facts">
+      <div><span>Название</span><b>${esc(d.title)}</b></div>
+      <div><span>Категория</span><b>${esc(d.cat)}</b></div>
+      <div><span>Место</span><b>${esc(d.district)}${d.addr ? ' · ' + esc(d.addr) : ''}</b></div>
+      <div><span>Идея жителя</span><b>${esc(d.idea) || '—'}</b></div>
+      <div><span>Проблема</span><b>${esc(d.problem) || '—'}</b></div>
+      <div><span>Результат</span><b>${esc(d.result) || '—'}</b></div>
+      <div><span>Касается жителей</span><b>${esc(d.people) || '—'}</b></div>
+      <div><span>Ориентировочная стоимость</span><b>${rub(d.cost)}</b></div>
+    </div>
+    ${d.smeta.length ? `<div class="tbl-wrap mt20"><table class="tbl">
+      <thead><tr><th>Что нужно</th><th class="r">Кол-во</th><th class="r">Ориентировочно, ₽</th></tr></thead>
+      <tbody>${d.smeta.map(i => `<tr><td>${esc(i.t)}</td><td class="r">${fmt(i.q)} ${esc(i.unit)}</td>
+        <td class="r strong">${fmt(i.q * i.u)}</td></tr>`).join('')}</tbody>
+    </table></div>` : '<div class="note note-a mt20">Объём работ не указан — специалист определит его сам, но с вашей оценкой заявку рассматривают быстрее.</div>'}`;
+}
+
+/* ---------- Мои проекты (черновики) ---------- */
+function drawMy() {
+  if (!Session.is('citizen')) { F('myList').innerHTML = '<p class="muted">Войдите, чтобы сохранять черновики.</p>'; return; }
+  const mine = DB.projects({ owner: Session.userId });
+  F('myList').innerHTML = mine.length ? mine.map(m => `
+    <div class="doc"><span class="ic ${m.status === 'draft' ? 'wait' : 'ok'}">${m.status === 'draft' ? '✎' : '✓'}</span>
+      <div class="tx"><b>${esc(m.title)}</b><small>${statusOf(m).n} · ${dateRU(m.createdAt)}</small></div>
+      <div class="act"><a class="btn btn-o btn-s" href="${m.status === 'draft' ? 'create.html?id=' + m.id : 'project.html?id=' + m.id}">
+        ${m.status === 'draft' ? 'Продолжить' : 'Открыть'}</a></div></div>`).join('')
+    : '<p class="muted">Черновиков пока нет.</p>';
+}
+
+/* ---------- Подсказки формулировок ---------- */
+function drawHints() {
+  const h = HINTS[val('f-cat')] || {};
+  const mk = (arr, target) => (arr || []).map(t =>
+    `<button class="btn btn-ghost btn-s" data-hint="${esc(t)}" data-target="${target}">${esc(t.length > 42 ? t.slice(0, 40) + '…' : t)}</button>`).join('');
+  F('titleHints').innerHTML = mk(h.title, 'f-title');
+  F('probHints').innerHTML = mk(h.prob, 'f-prob');
+  F('resHints').innerHTML = mk(h.res, 'f-res');
+  document.querySelectorAll('[data-hint]').forEach(b => b.addEventListener('click', () => {
+    F(b.dataset.target).value = b.dataset.hint;
+    syncPreview();
+  }));
+}
+
+/* ---------- Отправка ---------- */
+F('send').addEventListener('click', () => {
+  if (!Session.is('citizen')) {
+    Intent.set(location.pathname + location.search, 'submit');
+    toast('Для отправки заявки нужен вход через Госуслуги');
+    setTimeout(() => location.href = 'login.html?role=citizen&next=create.html' + (draftId ? '?id=' + draftId : ''), 900);
+    return;
+  }
+  const d = collect();
+  if (!d.idea) { step = 1; drawSteps(); toast('Опишите идею — это главное поле'); return; }
+  if (!d.title) { step = 2; drawSteps(); toast('Добавьте название проекта'); return; }
+  if (!d.problem || !d.result) { step = 2; drawSteps(); toast('Заполните проблему и результат'); return; }
+  const id = saveDraft(true);
+  DB.setStatus(id, 'submitted', {
+    actor: 'житель', title: 'Заявка отправлена в администрацию',
+    text: 'Житель ' + Session.user.name + ' отправил заявку. Ориентировочная стоимость по оценке жителя: ' + rub(d.cost) + '.'
+  });
+  toast('Заявка отправлена — она уже в очереди администрации');
+  setTimeout(() => location.href = 'project.html?id=' + id, 1200);
+});
+F('saveDraft').addEventListener('click', () => saveDraft());
+F('saveDraft1').addEventListener('click', () => saveDraft());
+
+/* ---------- Инициализация ---------- */
+['f-idea', 'f-title', 'f-addr', 'f-prob', 'f-res'].forEach(id => F(id).addEventListener('input', syncPreview));
+F('f-cat').addEventListener('change', () => { picked = {}; drawCatalog(); drawHints(); syncPreview(); });
+F('f-dist').addEventListener('change', syncPreview);
+
+/* Загрузка существующего черновика */
+if (draftId) {
+  const d = DB.project(draftId);
+  if (d) {
+    F('f-idea').value = d.idea || d.summary || '';
+    F('f-cat').value = d.cat; F('f-dist').value = d.district;
+    F('f-addr').value = d.addr || ''; F('f-title').value = d.title || '';
+    F('f-prob').value = d.problem || ''; F('f-res').value = d.result || '';
+    F('dStatus').textContent = statusOf(d).n;
+    F('pv-status').textContent = statusOf(d).n;
+    /* восстановить отметки по каталогу */
+    const list = CATALOG[d.cat] || [];
+    (d.smeta || []).forEach(i => {
+      const idx = list.findIndex(c => c.t === i.t);
+      if (idx >= 0) picked[idx] = i.q;
+    });
+  }
+}
+
+drawSteps(); drawCatalog(); drawHints(); syncPreview(); drawMy();
+</script>
+</body>
+</html>

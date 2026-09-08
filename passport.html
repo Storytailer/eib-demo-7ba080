@@ -89,53 +89,62 @@
 <div class="sheet" id="sheet"></div>
 
 <script src="assets/js/data.js"></script>
+<script src="assets/js/db.js"></script>
 <script src="assets/js/app.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-const id = param('id') || PROJECTS[0].id;
-const p = project(id);
+const id = param('id');
+const p = DB.project(id);
 if (!p) location.href = 'projects.html';
 document.getElementById('back').href = 'project.html?id=' + p.id;
 
-const st = stage(p.stage);
-const total = p.smeta.reduce((s, i) => s + i.q * i.u, 0);
+const st = statusOf(p);
+const total = DB.smetaTotal(p.id);
+const raised = DB.raised(p.id);
+const bids = DB.bids(p.id);
+const win = bids.find(b => b.status === 'winner');
+const reports = DB.reports(p.id);
+const issues = DB.issues(p.id, { published: true });
 const today = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
-const row = (k, v) => `<div class="ps-row"><span>${k}</span><b>${v}</b></div>`;
+const row = (k, v) => '<div class="ps-row"><span>' + k + '</span><b>' + v + '</b></div>';
 
-const docRows = p.docs.map(d => `<tr><td>${d.name}</td><td>${d.by}</td><td class="r">${d.date}</td></tr>`).join('');
+const docRows = (p.docs || []).map(d =>
+  '<tr><td>' + esc(d.name) + '</td><td>' + esc(d.by) + '</td><td class="r">' + esc(d.date) + '</td></tr>').join('');
 
-const works = p.works ? `
-  <div class="ps-sec">
-    <h2>Подрядчик и ход работ</h2>
-    <div class="ps-rows">
-      ${row('Подрядчик', p.works.contractor)}
-      ${row('Контракт', p.works.contract)}
-      ${row('Цена контракта', rub(p.works.sum))}
-      ${row('Оплачено по актам', rub(p.works.paid))}
-      ${row('Сроки работ', p.works.start + ' — ' + p.works.finish)}
-      ${row('Выполнено', p.works.progress + '%')}
-    </div>
-  </div>` : '';
-
-const tender = p.tender ? `
+const tenderBlock = (p.tender || bids.length) ? `
   <div class="ps-sec">
     <h2>Закупка (44-ФЗ)</h2>
     <div class="ps-rows">
-      ${row('Извещение', '№ ' + p.tender.number)}
-      ${row('Способ', p.tender.law)}
-      ${row('НМЦК', rub(p.tender.nmck))}
-      ${row('Заявок подано', p.tender.bids.length)}
-      ${row('Победитель', (p.tender.bids.find(b => b.st === 'winner') || {}).name || '—')}
-      ${row('Цена победителя', (p.tender.bids.find(b => b.st === 'winner') ? rub(p.tender.bids.find(b => b.st === 'winner').price) : '—'))}
+      ${row('Извещение', esc(p.tender ? p.tender.number : '—'))}
+      ${row('Способ', esc(p.tender ? p.tender.law : 'электронный аукцион'))}
+      ${row('НМЦК', rub(p.tender ? p.tender.nmck : p.cost))}
+      ${row('Заявок подано', bids.length)}
+      ${row('Победитель', win ? esc(win.contractorName) : '—')}
+      ${row('Цена контракта', win ? rub(win.price) : '—')}
     </div>
   </div>` : '';
 
-const report = p.report ? `
+const worksBlock = p.contract ? `
+  <div class="ps-sec">
+    <h2>Подрядчик и ход работ</h2>
+    <div class="ps-rows">
+      ${row('Подрядчик', esc((DB.user(p.contract.contractorId) || {}).name || '—'))}
+      ${row('Контракт', esc(p.contract.number))}
+      ${row('Цена контракта', rub(p.contract.sum))}
+      ${row('Оплачено по актам', rub(p.contract.paid))}
+      ${row('Сроки работ', esc(p.contract.start) + ' — ' + esc(p.contract.finish))}
+      ${row('Выполнено', DB.worksProgress(p.id) + '%')}
+      ${row('Отчётов подрядчика', reports.length)}
+      ${row('Замечаний жителей', issues.length)}
+    </div>
+  </div>` : '';
+
+const reportBlock = p.report ? `
   <div class="ps-sec">
     <h2>Итоги реализации</h2>
     <div class="ps-rows">
-      ${row('Объект открыт', p.report.openedAt)}
-      ${row('Отчёт опубликован', p.report.published)}
+      ${row('Объект открыт', esc(p.report.openedAt))}
+      ${row('Отчёт опубликован', esc(p.report.published))}
       ${row('Вложили жители', rub(p.report.citizens))}
       ${row('Бюджет города', rub(p.report.cityBudget))}
       ${row('Субсидия области', rub(p.report.regionSubsidy))}
@@ -145,49 +154,55 @@ const report = p.report ? `
     </div>
   </div>` : '';
 
+const stepsHtml = PHASES.map((f, i) => {
+  const cur = phaseIndex(phaseOf(p));
+  return '<span class="ps-step ' + (i < cur ? 'done' : (i === cur ? 'now' : '')) + '">' +
+    f.n + '. ' + f.name + (i < cur ? ' ✓' : '') + '</span>';
+}).join('');
+
+const smetaRows = (p.smeta || []).map(i =>
+  '<tr><td>' + esc(i.t) + '</td><td class="r">' + fmt(i.q) + ' ' + esc(i.unit || '') +
+  '</td><td class="r">' + fmt(i.u) + '</td><td class="r">' + fmt(i.q * i.u) + '</td></tr>').join('');
+
 document.getElementById('sheet').innerHTML = `
   <div class="ps-head">
     <div style="display:flex;gap:14px;align-items:flex-start">
       <span class="logo-mark">${logoMark()}</span>
       <div>
         <div class="ps-title">Паспорт инициативного проекта · ${CITY.name}</div>
-        <h1>${p.title}</h1>
-        <div class="ps-text muted" style="margin-top:6px">${p.cat} · ${p.district} · ${p.addr}</div>
+        <h1>${esc(p.title)}</h1>
+        <div class="ps-text muted" style="margin-top:6px">${esc(p.cat)} · ${esc(p.district)} · ${esc(p.addr)}</div>
       </div>
     </div>
     <div class="ps-num">
-      <b>№ ИБ-${CITY.year}-${String(PROJECTS.findIndex(x => x.id === p.id) + 1).padStart(3, '0')}</b>
-      Сформирован ${today}<br>Этап ${st.n} из ${STAGES.length}: ${st.name}
+      <b>№ ИБ-${CITY.year}-${String(DB.projects().findIndex(x => x.id === p.id) + 1).padStart(3, '0')}</b>
+      Сформирован ${today}<br>Статус: ${st.n}
     </div>
   </div>
 
   <div class="ps-sec">
     <h2>Этапы проекта</h2>
-    <div class="ps-steps">
-      ${STAGES.map((s, i) => {
-        const cur = stageIndex(p.stage);
-        return `<span class="ps-step ${i < cur ? 'done' : (i === cur ? 'now' : '')}">${s.n}. ${s.name}${i < cur ? ' ✓' : ''}</span>`;
-      }).join('')}
-    </div>
+    <div class="ps-steps">${stepsHtml}</div>
   </div>
 
   <div class="ps-sec">
     <h2>Общие сведения</h2>
     <div class="ps-rows">
-      ${row('Инициатор', p.initiator.name)}
-      ${row('Инициативная группа', p.signatures.count + ' подписей (норма — ' + p.signatures.need + ')')}
-      ${row('Дата подачи', p.signatures.date)}
-      ${row('Поддержали жители', p.votes + ' ' + plural(p.votes, 'голос', 'голоса', 'голосов'))}
-      ${row('Территория', p.district)}
-      ${row('Категория', p.cat)}
+      ${row('Инициатор', esc(p.ownerName))}
+      ${row('Инициативная группа', DB.signatures(p.id).length + ' подписей (норма — ' + p.signNeed + ')')}
+      ${row('Заявка создана', dateRU(p.createdAt))}
+      ${row('Категория', esc(p.cat))}
+      ${row('Территория', esc(p.district))}
+      ${row('Смета утверждена', p.smetaApproved ? 'да' : 'нет')}
     </div>
   </div>
 
   <div class="ps-sec">
     <h2>Обоснование</h2>
     <div class="ps-text">
-      <p><b>Проблема.</b> ${p.problem}</p>
-      <p><b>Результат.</b> ${p.result}</p>
+      ${p.idea ? '<p><b>Идея жителя.</b> ' + esc(p.idea) + '</p>' : ''}
+      <p><b>Проблема.</b> ${esc(p.problem)}</p>
+      <p><b>Результат.</b> ${esc(p.result)}</p>
     </div>
   </div>
 
@@ -197,11 +212,11 @@ document.getElementById('sheet').innerHTML = `
       ${row('Стоимость проекта', rub(p.cost))}
       ${row('Лимит проекта в ' + CITY.name + 'е', rub(CITY.limit))}
       ${row('Доля жителей', p.sharePct + '% · ' + rub(p.goal))}
-      ${row('Собрано жителями', rub(p.raised) + ' (' + pct(p) + '%)')}
-      ${row('Плательщиков', p.donors)}
-      ${row('Осталось собрать', rub(left(p)))}
-      ${row('Срок сбора по договору', p.deadline)}
-      ${row('Доля бюджета и субсидии', rub(p.cost - p.goal))}
+      ${row('Собрано жителями', rub(raised) + ' (' + DB.progress(p.id) + '%)')}
+      ${row('Плательщиков', DB.donors(p.id))}
+      ${row('Осталось собрать', rub(DB.leftToRaise(p.id)))}
+      ${row('Подтверждённых транзакций', DB.tx(p.id).filter(t => t.status === 'confirmed').length)}
+      ${row('Срок сбора по договору', esc(p.deadline))}
     </div>
   </div>
 
@@ -210,27 +225,26 @@ document.getElementById('sheet').innerHTML = `
     <table class="ps-tbl">
       <thead><tr><th>Статья расходов</th><th class="r">Кол-во</th><th class="r">Цена, ₽</th><th class="r">Сумма, ₽</th></tr></thead>
       <tbody>
-        ${p.smeta.map(i => `<tr><td>${i.t}</td><td class="r">${fmt(i.q)} ${i.unit}</td>
-          <td class="r">${fmt(i.u)}</td><td class="r">${fmt(i.q * i.u)}</td></tr>`).join('')}
+        ${smetaRows}
         <tr class="sum"><td colspan="3">Итого по смете</td><td class="r">${fmt(total)}</td></tr>
       </tbody>
     </table>
   </div>
 
-  ${tender}
-  ${works}
-  ${report}
+  ${tenderBlock}
+  ${worksBlock}
+  ${reportBlock}
 
   <div class="ps-sec">
     <h2>Документы проекта</h2>
     <table class="ps-tbl">
       <thead><tr><th>Документ</th><th>Кто формирует</th><th class="r">Дата</th></tr></thead>
-      <tbody>${docRows}</tbody>
+      <tbody>${docRows || '<tr><td colspan="3">Документы ещё не сформированы</td></tr>'}</tbody>
     </table>
   </div>
 
   <div class="ps-sign">
-    <div><div class="line"></div>Руководитель инициативной группы · ${p.initiator.name}</div>
+    <div><div class="line"></div>Руководитель инициативной группы · ${esc(p.ownerName)}</div>
     <div><div class="line"></div>Куратор проекта, администрация г. ${CITY.name}а</div>
   </div>
 
@@ -245,7 +259,6 @@ document.getElementById('sheet').innerHTML = `
     <div class="ps-qr" id="qr"><small>QR-код<br>карточки проекта</small></div>
   </div>`;
 
-/* Ссылка и QR-код на карточку проекта */
 const url = location.origin + location.pathname.replace('passport.html', 'project.html') + '?id=' + p.id;
 document.getElementById('lnk').textContent = url;
 if (typeof QRCode !== 'undefined') {

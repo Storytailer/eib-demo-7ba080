@@ -14,9 +14,7 @@
 <body>
 <div id="hdr"></div>
 
-<section class="pagehead">
-  <div class="wrap" id="head"></div>
-</section>
+<section class="pagehead"><div class="wrap" id="head"></div></section>
 
 <section class="sec-s">
   <div class="wrap">
@@ -47,10 +45,10 @@
   <div class="field">
     <label>Своя сумма, ₽</label>
     <input class="inp" id="paySum" type="number" min="1" value="500">
-    <div class="hint">Минимальный взнос — 1 ₽. Ограничения по максимуму нет.</div>
+    <div class="hint">Минимальный взнос — 1 ₽. Каждый платёж записывается отдельной транзакцией.</div>
   </div>
   <div class="note note-b mb20">Платформа сформирует <b>договор пожертвования</b> и <b>кассовый чек</b>,
-    а средства поступят в бюджет города по реквизитам договора (п. 8.2 Положения № 05-22).
+    средства поступят в бюджет города по реквизитам договора (п. 8.2 Положения № 05-22).
     Если проект не будет реализован — взнос возвращается (ст. 70 ФЗ-33).</div>
   <button class="btn btn-p btn-full" id="payGo">Оплатить картой или СБП</button>
 </div></div>
@@ -58,296 +56,468 @@
 <!-- Замечание жителя -->
 <div class="modal" id="mIssue"><div class="modal-box">
   <button class="modal-x">×</button>
-  <h3>Замечание по работам</h3>
-  <p class="muted mb20">Замечание увидят подрядчик, куратор проекта в администрации и остальные жители.</p>
-  <div class="field"><label>Что не так</label><textarea class="inp" id="issueText" placeholder="Например: не огорожена зона работ со стороны школы"></textarea></div>
-  <button class="btn btn-d btn-full" id="issueGo">Отправить замечание</button>
+  <h3>Оставить замечание</h3>
+  <p class="muted mb20">Замечание уходит на модерацию администрации. После публикации его увидят
+    подрядчик, куратор проекта и другие жители.</p>
+  <div class="field"><label>Что не так</label>
+    <textarea class="inp" id="issueText" placeholder="Например: после дождя у северного края площадки стоит вода"></textarea></div>
+  <div class="field"><label>Фотографии</label>
+    <div class="up" id="issueUp">
+      <button class="btn btn-o btn-s" id="issueAddPhoto">📷 Добавить фотографию</button>
+      <span class="muted" style="font-size:12.5px">JPG/PNG до 10 МБ · демо-режим: файл не загружается, фиксируется карточка снимка</span>
+    </div>
+    <div id="issuePhotos" class="mt14"></div>
+  </div>
+  <button class="btn btn-d btn-full" id="issueGo">Отправить на модерацию</button>
 </div></div>
 
-<!-- Фотоотчёт подрядчика -->
-<div class="modal" id="mShot"><div class="modal-box">
+<!-- Отчёт подрядчика -->
+<div class="modal" id="mReport"><div class="modal-box">
   <button class="modal-x">×</button>
-  <h3>Фотоотчёт по этапу</h3>
-  <p class="muted mb20">Отчёт публикуется жителям сразу, дата фиксируется платформой.</p>
-  <div class="field"><label>Что сделано</label><input class="inp" id="shotText" placeholder="Например: уложено 180 м² покрытия"></div>
-  <div class="field"><label>Фотографии</label>
-    <div class="doc"><span class="ic">📷</span><div class="tx"><b>Добавить файлы</b><small>JPG/PNG до 10 МБ · демо-режим</small></div></div>
+  <h3>Отчёт по этапу работ</h3>
+  <p class="muted mb20">Дата отправки фиксируется системой автоматически в момент отправки —
+    отдельно от даты фактического выполнения работ.</p>
+  <div class="row2">
+    <div class="field"><label>Этап работ</label><select class="inp" id="repStage"></select></div>
+    <div class="field"><label>Дата выполнения работ</label><input class="inp" type="date" id="repDate"></div>
   </div>
-  <button class="btn btn-g btn-full" id="shotGo">Опубликовать отчёт</button>
+  <div class="field"><label>Готовность этапа, %</label>
+    <input class="inp" type="number" id="repPercent" min="0" max="100" value="100"></div>
+  <div class="field"><label>Что выполнено</label>
+    <textarea class="inp" id="repText" placeholder="Например: уложено 180 м² резинового покрытия, смонтированы бортовые элементы"></textarea></div>
+  <div class="field"><label>Фотографии</label>
+    <div class="up">
+      <button class="btn btn-o btn-s" data-kind="before">📷 Фото «до»</button>
+      <button class="btn btn-o btn-s" data-kind="progress">📷 Ход работ</button>
+      <button class="btn btn-o btn-s" data-kind="after">📷 Фото «после»</button>
+    </div>
+    <div id="repPhotos" class="mt14"></div>
+  </div>
+  <div class="field"><label>Документы</label>
+    <div class="up">
+      <button class="btn btn-o btn-s" data-doc="Акт КС-2">📎 Акт КС-2</button>
+      <button class="btn btn-o btn-s" data-doc="Справка КС-3">📎 Справка КС-3</button>
+      <button class="btn btn-o btn-s" data-doc="Исполнительная документация">📎 Другой документ</button>
+    </div>
+    <div id="repDocs" class="mt14"></div>
+  </div>
+  <button class="btn btn-g btn-full" id="repGo">Отправить отчёт</button>
+</div></div>
+
+<!-- Решение администрации -->
+<div class="modal" id="mDecide"><div class="modal-box">
+  <button class="modal-x">×</button>
+  <h3 id="decTitle">Решение по заявке</h3>
+  <p class="muted mb20" id="decText"></p>
+  <div class="field"><label>Комментарий (виден инициатору)</label>
+    <textarea class="inp" id="decComment" placeholder="Например: уточните расценки по пунктам 2 и 3, приложите фото места"></textarea></div>
+  <button class="btn btn-d btn-full" id="decGo">Подтвердить</button>
 </div></div>
 
 <div id="ftr"></div>
 
 <script src="assets/js/data.js"></script>
+<script src="assets/js/db.js"></script>
 <script src="assets/js/app.js"></script>
 <script>
 mount('projects');
 
-const id = param('id') || PROJECTS[0].id;
-let p = project(id);
+const id = param('id');
+let p = DB.project(id);
 if (!p) { location.href = 'projects.html'; }
 
-const role = () => State.role();
-const smetaTotal = pr => pr.smeta.reduce((s, i) => s + i.q * i.u, 0);
+/* История просмотров — для раздела «Мои проекты» жителя */
+if (Session.userId) DB.trackView(Session.userId, p.id);
 
-/* Лента последних взносов. В демо строится детерминированно из id проекта,
-   в реальной системе это обезличенный реестр взносов из платёжного шлюза. */
-const FEED_NAMES = ['Анна Т.', 'Игорь М.', 'Светлана П.', 'Дмитрий К.', 'Ольга В.', 'Николай С.',
-  'Екатерина Л.', 'Павел Ж.', 'Марина Б.', 'Артём Р.', 'Юлия Н.', 'Сергей Д.'];
-function feed(pr) {
-  if (pr.feed) return pr.feed;
-  let seed = pr.id.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
-  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
-  const sums = [300, 500, 1000, 1500, 2000, 3000, 5000];
-  return Array.from({ length: 6 }, (_, i) => ({
-    n: FEED_NAMES[Math.floor(rnd() * FEED_NAMES.length)],
-    s: sums[Math.floor(rnd() * sums.length)],
-    d: i === 0 ? 'сегодня' : (i === 1 ? 'вчера' : i + ' ' + plural(i, 'день', 'дня', 'дней') + ' назад')
-  }));
-}
+const reload = () => { p = DB.project(p.id); redraw(); };
 
-/* ---------------- Шапка проекта ---------------- */
+/* ---------------- Шапка ---------------- */
 function drawHead() {
-  const s = stage(p.stage);
+  const st = statusOf(p);
+  const raised = DB.raised(p.id);
   document.getElementById('head').innerHTML = `
-    <div class="crumbs"><a href="index.html">Главная</a> → <a href="projects.html">Проекты</a> → ${p.title}</div>
+    <div class="crumbs"><a href="index.html">Главная</a> → <a href="projects.html">Проекты</a> → ${esc(p.title)}</div>
     <div class="between">
       <div style="max-width:760px">
         <div class="flexr mb14">
-          <span class="chip ${s.chip}"><span class="dt"></span>Этап ${s.n} · ${s.name}</span>
-          <span class="chip chip-grey">${p.cat}</span>
-          <span class="chip chip-grey">${p.district}</span>
+          <span class="chip ${st.chip}"><span class="dt"></span>${st.n}</span>
+          <span class="chip chip-grey">${esc(p.cat)}</span>
+          <span class="chip chip-grey">${esc(p.district)}</span>
+          <span class="chip chip-grey">Инициатор: ${esc(p.ownerName)}</span>
         </div>
-        <h2>${p.title}</h2>
-        <p class="lead mt8">📍 ${p.addr}</p>
+        <h2>${esc(p.title)}</h2>
+        <p class="lead mt8">📍 ${esc(p.addr)}</p>
       </div>
       <div class="facts facts-side">
         <div><span>Стоимость проекта</span><b>${rub(p.cost)}</b></div>
         <div><span>Доля жителей</span><b>${p.sharePct}% · ${rub(p.goal)}</b></div>
-        <div><span>Поддержали</span><b>${p.votes} ${plural(p.votes, "голос", "голоса", "голосов")}</b></div>
+        <div><span>Собрано</span><b>${rub(raised)}</b></div>
+        <div><span>Подписей</span><b>${DB.signatures(p.id).length} из ${p.signNeed}</b></div>
       </div>
     </div>`;
 }
 
-/* ---------------- Крупное превью объекта ---------------- */
+/* ---------------- Баннер и трекер ---------------- */
 function drawBanner() {
-  const s = stage(p.stage);
-  document.getElementById('banner').className = 'pbanner ' + p.cover;
-  document.getElementById('banner').innerHTML = `
-    ${coverArt(p)}
+  const st = statusOf(p);
+  const b = document.getElementById('banner');
+  b.className = 'pbanner ' + p.cover;
+  b.innerHTML = `${coverArt(p)}
     <div class="pbanner-top">
-      <span class="cat-pill">${p.cat}</span>
-      <span class="chip"><span class="dt"></span>Этап ${s.n} из ${STAGES.length} · ${s.name}</span>
+      <span class="cat-pill">${esc(p.cat)}</span>
+      <span class="chip"><span class="dt"></span>${st.n}</span>
     </div>
     <div class="pbanner-bot">
-      <b>${p.result.split(':')[0]}</b>
-      <span>${p.district} · ${p.addr}</span>
+      <b>${esc((p.result || p.summary || '').split(':')[0])}</b>
+      <span>${esc(p.district)} · ${esc(p.addr)}</span>
     </div>`;
 }
 
-/* ---------------- Трекер этапов ---------------- */
 function drawSteps() {
-  const cur = stageIndex(p.stage);
-  document.getElementById('steps').innerHTML = STAGES.map((s, i) => {
+  const cur = phaseIndex(phaseOf(p));
+  document.getElementById('steps').innerHTML = PHASES.map((f, i) => {
     const cls = i < cur ? 'done' : (i === cur ? 'now' : '');
-    return `<div class="step ${cls}"><div class="k">ЭТАП ${s.n}${i < cur ? ' · ГОТОВО' : (i === cur ? ' · СЕЙЧАС' : '')}</div>
-      <div class="n">${s.name}</div></div>`;
+    return `<div class="step ${cls}"><div class="k">ЭТАП ${f.n}${i < cur ? ' · ГОТОВО' : (i === cur ? ' · СЕЙЧАС' : '')}</div>
+      <div class="n">${f.name}</div></div>`;
   }).join('');
 }
 
-/* ---------------- Вкладки ---------------- */
+/* ---------------- Вкладка: обзор и хроника ---------------- */
 function paneOverview() {
+  const ev = DB.events(p.id);
+  const icon = { 'администрация': '🏛️', 'подрядчик': '🏗️', 'платформа': '⚙️', 'житель': '🧑', 'инициатор': '🧑' };
   return `<div class="card">
       <h3 class="mb14">О проекте</h3>
-      <p class="lead" style="font-size:17px;color:var(--ink)">${p.summary}</p>
+      <p class="lead" style="font-size:17px;color:var(--ink)">${esc(p.summary)}</p>
+      ${p.idea ? `<div class="note note-b mt20"><b>Идея жителя:</b> ${esc(p.idea)}</div>` : ''}
       <div class="grid g2 mt20">
-        <div class="card card-flat"><h4 class="mb8">Проблема</h4><p class="muted">${p.problem}</p></div>
-        <div class="card card-flat"><h4 class="mb8">Что получится</h4><p class="muted">${p.result}</p></div>
+        <div class="card card-flat"><h4 class="mb8">Проблема</h4><p class="muted">${esc(p.problem)}</p></div>
+        <div class="card card-flat"><h4 class="mb8">Что получится</h4><p class="muted">${esc(p.result)}</p></div>
       </div>
+      ${p.plan ? `<div class="card card-flat mt20"><h4 class="mb8">План работ инициатора</h4>
+        <p class="muted">${esc(p.plan)}</p></div>` : ''}
     </div>
+
     <div class="card">
       <div class="card-h"><h3>Кто ведёт проект</h3><span class="chip chip-blue">инициативная группа</span></div>
       <div class="facts">
-        <div><span>Инициатор</span><b>${p.initiator.name}</b></div>
-        <div><span>Группа</span><b>${p.initiator.about}</b></div>
-        <div><span>Электронных подписей</span><b>${p.signatures.count} из ${p.signatures.need} необходимых</b></div>
-        <div><span>Дата подачи</span><b>${p.signatures.date}</b></div>
+        <div><span>Инициатор</span><b>${esc(p.ownerName)}</b></div>
+        <div><span>Группа</span><b>${esc(p.groupNote || '—')}</b></div>
+        <div><span>Электронных подписей</span><b>${DB.signatures(p.id).length} из ${p.signNeed} необходимых</b></div>
+        <div><span>Заявка создана</span><b>${dateRU(p.createdAt)}</b></div>
       </div>
-      <div class="note note-b mt20">Подписи собраны через Госуслуги: платформа хранит идентификатор учётной записи
-        и подтверждение возраста 18+, без паспортных данных (152-ФЗ). Бумажные подписные листы не нужны.</div>
     </div>
-    ${p.stage === 'collecting' ? `<div class="card">
-      <div class="card-h"><h3>Последние взносы</h3>
-        <span class="chip chip-green">${p.donors} ${plural(p.donors, 'плательщик', 'плательщика', 'плательщиков')}</span></div>
-      <div class="feed">
-        ${feed(p).map(f => `<div class="feed-row">
-          <span class="av ${f.n === 'Вы' ? 'me' : ''}">${f.n === 'Вы' ? '★' : f.n.charAt(0)}</span>
-          <div><b>${f.n}</b><small>${f.d} · договор пожертвования и чек сформированы</small></div>
-          <span class="s">${rub(f.s)}</span></div>`).join('')}
-      </div>
-      <div class="note note-b mt20">Реестр взносов публичный, но обезличенный: видно сумму и дату,
-        персональные данные плательщиков не раскрываются (152-ФЗ). Полный реестр уходит в администрацию
-        вместе с пакетом документов.</div>
-    </div>` : ''}
+
     <div class="card">
-      <h3 class="mb20">Хроника проекта</h3>
-      ${p.log.slice().reverse().map(l => `<div class="doc">
-        <span class="ic ${l.a === 'администрация' ? 'wait' : (l.a === 'платформа' ? '' : 'ok')}">${l.a === 'администрация' ? '🏛️' : (l.a === 'подрядчик' ? '🏗️' : (l.a === 'платформа' ? '⚙️' : '🧑'))}</span>
-        <div class="tx"><b>${l.t}</b><small>${l.d} · ${l.a}</small></div></div>`).join('')}
+      <div class="card-h"><h3>Хроника проекта</h3><span class="chip chip-grey">${ev.length} ${plural(ev.length, 'событие', 'события', 'событий')}</span></div>
+      <p class="muted mb20">Каждое действие в системе — от создания черновика до итогового отчёта —
+        записывается с датой, автором и описанием.</p>
+      <div class="tl">
+        ${ev.map(e => `<div class="tl-item">
+          <span class="tl-dot">${icon[e.actor] || '•'}</span>
+          <div class="tl-body">
+            <div class="tl-head"><b>${esc(e.title)}</b><span>${dateTimeRU(e.date)}</span></div>
+            <p>${esc(e.text)}</p>
+            <small class="muted">${esc(e.actor)}</small>
+          </div>
+        </div>`).join('')}
+      </div>
     </div>`;
 }
 
+/* ---------------- Вкладка: смета ---------------- */
 function paneSmeta() {
-  const total = smetaTotal(p);
-  const approved = stageIndex(p.stage) > 0;
+  const total = DB.smetaTotal(p.id);
+  const isAdmin = Session.is('admin');
+  const editable = isAdmin && !['done', 'refunded'].includes(p.status);
+
+  const rows = (p.smeta || []).map((i, idx) => editable
+    ? `<tr>
+        <td><input class="inp inp-s" value="${esc(i.t)}" data-sm="${idx}" data-f="t"></td>
+        <td><input class="inp inp-s r" type="number" value="${i.q}" data-sm="${idx}" data-f="q"></td>
+        <td><input class="inp inp-s r" type="number" value="${i.u}" data-sm="${idx}" data-f="u"></td>
+        <td class="r strong">${fmt(i.q * i.u)}</td>
+        <td class="r"><button class="btn btn-ghost btn-s" data-del="${idx}">×</button></td>
+      </tr>`
+    : `<tr><td>${esc(i.t)}</td><td class="r">${fmt(i.q)} ${esc(i.unit || 'ед.')}</td>
+        <td class="r">${fmt(i.u)}</td><td class="r strong">${fmt(i.q * i.u)}</td>
+        ${isAdmin ? '<td></td>' : ''}</tr>`).join('');
+
   return `<div class="card">
     <div class="card-h">
-      <div><h3>Смета проекта</h3><p class="muted">Строки вносит инициатор, итог считает платформа<span class="who who-i">инициатор</span><span class="who who-p">расчёт платформы</span></p></div>
-      <span class="chip ${approved ? 'chip-green' : 'chip-amber'}">${approved ? 'Утверждена администрацией' : 'На проверке'}</span>
+      <div><h3>Смета проекта</h3>
+        <p class="muted">Житель описывает потребность своими словами, статьи расходов формирует
+          и проверяет администрация<span class="who who-i">идея жителя</span><span class="who who-a">расчёт администрации</span></p></div>
+      <span class="chip ${p.smetaApproved ? 'chip-green' : 'chip-amber'}">${p.smetaApproved ? 'Утверждена' : 'Не утверждена'}</span>
     </div>
+
+    ${p.idea ? `<div class="note note-b mb20"><b>Что просил житель:</b> ${esc(p.idea)}</div>` : ''}
+
     <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Статья расходов</th><th class="r">Кол-во</th><th class="r">Цена, ₽</th><th class="r">Сумма, ₽</th></tr></thead>
-      <tbody>
-        ${p.smeta.map(i => `<tr><td>${i.t}</td><td class="r">${fmt(i.q)} ${i.unit}</td>
-          <td class="r">${fmt(i.u)}</td><td class="r strong">${fmt(i.q * i.u)}</td></tr>`).join('')}
-        <tr class="sum"><td colspan="3">Итого по смете</td><td class="r">${fmt(total)}</td></tr>
-      </tbody>
+      <thead><tr><th>Статья расходов</th><th class="r">Кол-во</th><th class="r">Цена, ₽</th><th class="r">Сумма, ₽</th>${isAdmin ? '<th></th>' : ''}</tr></thead>
+      <tbody id="smetaRows">${rows || `<tr><td colspan="5" class="muted">Статьи расходов ещё не сформированы. Их составит специалист администрации.</td></tr>`}</tbody>
+      <tfoot><tr class="sum"><td colspan="3">Итого по смете</td><td class="r">${fmt(total)}</td>${isAdmin ? '<td></td>' : ''}</tr></tfoot>
     </table></div>
+
+    ${editable ? `<div class="flexr mt20">
+        <button class="btn btn-o btn-s" id="smAdd">+ Добавить статью</button>
+        <button class="btn btn-g btn-s" id="smApprove">Утвердить смету</button>
+        <span class="muted" style="font-size:13px">Изменения сохраняются сразу, доля жителей пересчитывается автоматически</span>
+      </div>` : ''}
+
     <div class="grid g2 mt20">
       <div class="facts">
         <div><span>Лимит инициативного проекта</span><b>${rub(CITY.limit)}</b></div>
-        <div><span>Смета проекта</span><b>${rub(total)}</b></div>
+        <div><span>Итог сметы</span><b>${rub(total)}</b></div>
         <div><span>Доля жителей (${p.sharePct}%)</span><b>${rub(p.goal)}</b></div>
-        <div><span>Доля бюджета и субсидии</span><b>${rub(p.cost - p.goal)}</b></div>
+        <div><span>Доля бюджета и субсидии</span><b>${rub(Math.max(0, p.cost - p.goal))}</b></div>
       </div>
       <div class="note ${total <= CITY.limit ? 'note-g' : 'note-r'}">
         <b>${total <= CITY.limit ? 'Смета в пределах лимита.' : 'Превышен лимит.'}</b>
-        Платформа не принимает заявку со сметой выше ${rub(CITY.limit)} — лимит инициативного проекта
-        для города Обнинска. Итог считается автоматически, вручную поле «итого» не заполняется.
+        Лимит инициативного проекта для Обнинска — ${rub(CITY.limit)}. Итог считает платформа,
+        вручную поле «итого» не заполняется.
       </div>
     </div>
   </div>`;
 }
 
-function paneDocs() {
-  const st = { approved: ['ok', '✓', 'Принят'], signed: ['ok', '✍️', 'Подписан ЕСИА'], sent: ['wait', '📨', 'Отправлен'], progress: ['wait', '⏳', 'Формируется'], wait: ['', '○', 'Ожидает'] };
-  const pack = p.docsPack ? `
-    <div class="card">
-      <div class="card-h"><h3>Отправка пакета в администрацию</h3>
-        <span class="chip ${p.docsPack.status.indexOf('Принято') === 0 ? 'chip-green' : 'chip-amber'}">${p.docsPack.status}</span></div>
-      <div class="facts">
-        <div><span>Отправлено</span><b>${p.docsPack.sentAt}</b></div>
-        <div><span>Канал</span><b>${p.docsPack.channel}</b></div>
-        <div><span>Входящий номер</span><b>${p.docsPack.incoming}</b></div>
-        <div><span>Срок</span><b>${p.docsPack.deadline}</b></div>
-      </div>
-      <div class="note note-b mt20">Раньше этот пакет носили в администрацию на бумаге: заявка, протокол собрания,
-        подписные листы, договоры пожертвования и платёжки. Сейчас платформа собирает его сама,
-        подписывает через ЕСИА и отдаёт в систему документооборота с входящим номером и сроком ответа.</div>
-    </div>` : '';
+/* ---------------- Вкладка: подписи ---------------- */
+function paneSign() {
+  const list = DB.signatures(p.id);
+  const need = p.signNeed;
+  const pct = Math.min(100, Math.round(list.length / need * 100));
+  const mine = Session.userId && DB.hasSigned(p.id, Session.userId);
 
-  return pack + `<div class="card">
-    <div class="card-h"><h3>Документы проекта</h3><span class="chip chip-grey">${p.docs.length} документов</span></div>
-    ${p.docs.map(d => {
-      const s = st[d.st] || st.wait;
-      return `<div class="doc"><span class="ic ${s[0]}">${s[1]}</span>
-        <div class="tx"><b>${d.name}</b><small>${s[2]} · ${d.date} · ${d.by}</small></div>
-        <div class="act"><button class="btn btn-o btn-s" onclick="toast('Демо: документ открылся бы в формате PDF')">Открыть</button></div></div>`;
-    }).join('')}
-    <div class="note note-a mt20"><b>Что генерирует платформа.</b> Заявку, протокол собрания группы,
-      реестр электронных подписей, договоры пожертвования с чеками, реестр взносов и итоговый отчёт.
-      Решения комиссии и извещение о закупке загружает администрация, исполнительный график — подрядчик.</div>
-  </div>`;
-}
-
-function paneTender() {
-  if (!p.tender) return placeholder('Выбор подрядчика', 'Закупка объявляется после того, как средства жителей поступили в бюджет города и документы приняты администрацией.');
-  const t = p.tender;
-  const stMap = { winner: ['chip-green', 'Победитель'], second: ['chip-grey', 'Второе место'], third: ['chip-grey', 'Третье место'], rejected: ['chip-red', 'Отклонена'] };
   return `<div class="card">
-    <div class="card-h"><h3>Закупка по 44-ФЗ</h3><span class="chip chip-violet">${t.status}</span></div>
-    <div class="facts">
-      <div><span>Номер извещения</span><b>${t.number}</b></div>
-      <div><span>Способ</span><b>${t.law}</b></div>
-      <div><span>Площадка</span><b>${t.platform}</b></div>
-      <div><span>НМЦК</span><b>${rub(t.nmck)}</b></div>
-      <div><span>Опубликовано</span><b>${t.published}</b></div>
-      <div><span>Приём заявок до</span><b>${t.bidsUntil}</b></div>
-      <div><span>Дата аукциона</span><b>${t.auctionAt}</b></div>
-      <div><span>Срок выполнения работ</span><b>${t.term}</b></div>
-    </div>
-    <div class="note note-b mt20">Торги идут в ЕИС — платформа их не подменяет. Она показывает жителям то,
-      что обычно приходится искать в реестре закупок: кто подал заявку, с какой ценой, с каким опытом
-      и кто в итоге победил.</div>
-  </div>
-  <div class="card">
-    <div class="card-h"><h3>Заявки участников</h3><span class="chip chip-grey">${t.bids.length} ${plural(t.bids.length, 'заявка', 'заявки', 'заявок')}</span></div>
-    <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Участник</th><th class="r">Цена, ₽</th><th class="r">Снижение</th><th>Срок</th><th>Опыт</th><th>Статус</th></tr></thead>
-      <tbody>${t.bids.map(b => {
-        const s = stMap[b.st] || stMap.second;
-        return `<tr>
-          <td><b>${b.name}</b><br><small class="muted">ИНН ${b.inn}</small></td>
-          <td class="r strong">${fmt(b.price)}</td>
-          <td class="r">−${b.dis}%</td>
-          <td>${b.term}</td>
-          <td><small>${b.exp}<br><span class="muted">исполнено ${b.done}, срывов ${b.fail}</span></small></td>
-          <td><span class="chip ${s[0]}">${s[1]}</span>${b.why ? `<br><small class="muted">${b.why}</small>` : ''}</td>
-        </tr>`;
-      }).join('')}</tbody>
+    <div class="card-h"><h3>Подписи инициативной группы</h3>
+      <span class="chip ${list.length >= need ? 'chip-green' : 'chip-amber'}">${list.length} из ${need}</span></div>
+    <div class="bar bar-lg ${list.length >= need ? 'ok' : 'warn'}"><i style="width:${pct}%"></i></div>
+    <p class="muted mt14">Заявку вносит группа не менее ${need} жителей старше 18 лет (ст. 49 ФЗ-33).
+      Подпись ставится через Госуслуги: платформа хранит идентификатор учётной записи и подтверждение
+      возраста, без паспортных данных (152-ФЗ). Один житель может подписать проект только один раз.</p>
+    ${mine ? `<div class="note note-g mt20"><b>Ваша подпись учтена.</b> Вы в списке ниже — повторно
+      подписать проект нельзя, дубликаты система не создаёт.</div>` : ''}
+
+    <div class="tbl-wrap mt20"><table class="tbl">
+      <thead><tr><th>№</th><th>Кто подписал</th><th>Идентификатор</th><th class="r">Дата и время</th></tr></thead>
+      <tbody>${list.map((s, i) => `<tr${s.userId === Session.userId ? ' style="background:var(--green-soft)"' : ''}>
+        <td>${list.length - i}</td>
+        <td><b>${esc(s.userName)}</b>${s.userId === Session.userId ? ' <span class="chip chip-green">вы</span>' : ''}</td>
+        <td><code class="muted">ЕСИА · ${esc(s.userId)}</code></td>
+        <td class="r">${dateTimeRU(s.date)}</td></tr>`).join('')}</tbody>
     </table></div>
-    ${t.bids.some(b => b.st === 'winner') ? `<div class="note note-g mt20">
-      <b>Победитель: ${t.bids.find(b => b.st === 'winner').name}.</b>
-      Цена контракта ${rub(t.bids.find(b => b.st === 'winner').price)} — экономия
-      ${rub(t.nmck - t.bids.find(b => b.st === 'winner').price)} от НМЦК.
-      Экономия остаётся в бюджете города и учитывается в итоговом отчёте по проекту.</div>` : ''}
   </div>`;
 }
 
-function paneWorks() {
-  if (!p.works) return placeholder('Отчёт подрядчика', 'Раздел открывается после заключения муниципального контракта: подрядчик загружает исполнительный график и публикует фотоотчёт по этапам.');
-  const w = p.works;
-  const stMap = { done: ['chip-green', 'выполнено'], now: ['chip-amber', 'в работе'], wait: ['chip-grey', 'ожидает'] };
+/* ---------------- Вкладка: финансы ---------------- */
+function paneMoney() {
+  const tx = DB.tx(p.id);
+  const conf = tx.filter(t => t.status === 'confirmed');
+  const raised = DB.raised(p.id), pct = DB.progress(p.id), left = DB.leftToRaise(p.id);
+  const my = Session.userId ? tx.filter(t => t.userId === Session.userId) : [];
+
   return `<div class="card">
-    <div class="card-h"><h3>Ход работ</h3><span class="chip ${w.progress === 100 ? 'chip-green' : 'chip-amber'}">${w.progress}% выполнено</span></div>
-    <div class="bar bar-lg ${w.progress === 100 ? 'ok' : ''}"><i style="width:${w.progress}%"></i></div>
-    <div class="facts mt20">
-      <div><span>Контракт</span><b>${w.contract}</b></div>
-      <div><span>Подрядчик</span><b>${w.contractor}</b></div>
-      <div><span>Цена контракта</span><b>${rub(w.sum)}</b></div>
-      <div><span>Оплачено по актам</span><b>${rub(w.paid)}</b></div>
-      <div><span>Сроки</span><b>${w.start} — ${w.finish}</b></div>
-      <div><span>Куратор</span><b>${w.curator}</b></div>
-      <div><span>Общественный контроль</span><b>${w.publicCheck}</b></div>
+    <div class="card-h"><h3>Сбор средств</h3>
+      <span class="chip ${pct >= 100 ? 'chip-green' : 'chip-blue'}">${pct}% цели</span></div>
+    <div class="money"><b>${rub(raised)}</b><span>цель ${rub(p.goal)}</span></div>
+    <div class="bar bar-lg mt8 ${pct >= 100 ? 'ok' : ''}"><i style="width:${pct}%"></i></div>
+    <div class="grid g4 mt20">
+      <div class="kpi g"><b>${rub(raised)}</b><span>собрано (подтверждённые поступления)</span></div>
+      <div class="kpi a"><b>${rub(left)}</b><span>осталось собрать</span></div>
+      <div class="kpi b"><b>${DB.donors(p.id)}</b><span>${plural(DB.donors(p.id), 'человек принял участие', 'человека приняли участие', 'человек приняли участие')}</span></div>
+      <div class="kpi v"><b>${conf.length}</b><span>подтверждённых транзакций</span></div>
+    </div>
+    <div class="note note-b mt20">Прогресс считается как сумма всех подтверждённых поступлений,
+      делённая на необходимую сумму. Отменённые, неуспешные и ещё не подтверждённые платежи
+      в прогресс не входят — они видны в таблице ниже со своим статусом.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h3>Последние взносы</h3>
+      <span class="chip chip-green">${conf.length} ${plural(conf.length, 'взнос', 'взноса', 'взносов')}</span></div>
+    <div class="feed">
+      ${conf.slice(0, 6).map(t => `<div class="feed-row">
+        <span class="av ${t.userId === Session.userId ? 'me' : ''}">${t.userId === Session.userId ? '★' : esc(String(t.userName).charAt(0))}</span>
+        <div><b>${esc(t.userName)}${t.userId === Session.userId ? ' · вы' : ''}</b>
+          <small>${dateTimeRU(t.date)} · ${esc(t.method)} · договор пожертвования и чек сформированы</small></div>
+        <span class="s">${rub(t.amount)}</span></div>`).join('') || '<p class="muted">Взносов пока нет.</p>'}
     </div>
   </div>
+
   <div class="card">
-    <h3 class="mb20">Исполнительный график<span class="who who-c">загружает подрядчик</span></h3>
+    <div class="card-h"><h3>Транзакции</h3><span class="chip chip-grey">${tx.length} всего</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Идентификатор</th><th>Плательщик</th><th class="r">Сумма</th><th>Дата и время</th><th>Способ</th><th>Статус</th></tr></thead>
+      <tbody>${tx.map(t => {
+        const s = TX_STATUS[t.status];
+        return `<tr><td><code>${esc(t.no)}</code></td>
+          <td>${esc(t.userName)}</td>
+          <td class="r strong">${rub(t.amount)}</td>
+          <td>${dateTimeRU(t.date)}</td>
+          <td>${esc(t.method)}</td>
+          <td><span class="chip ${s[0]}">${s[1]}</span></td></tr>`;
+      }).join('') || '<tr><td colspan="6" class="muted">Транзакций нет</td></tr>'}</tbody>
+    </table></div>
+    ${my.length ? `<div class="note note-g mt20"><b>Ваши взносы по этому проекту:</b>
+      ${my.map(t => rub(t.amount) + ' — ' + dateRU(t.date) + ' (' + TX_STATUS[t.status][1] + ')').join('; ')}.</div>` : ''}
+  </div>`;
+}
+
+/* ---------------- Вкладка: торги ---------------- */
+function paneTender() {
+  const bids = DB.bids(p.id);
+  if (!p.tender && !bids.length) {
+    return placeholder('Торги и выбор подрядчика',
+      'Закупка объявляется после того, как средства жителей поступили в бюджет города и пакет документов принят администрацией.');
+  }
+  const t = p.tender || {};
+  const win = bids.find(b => b.status === 'winner');
+  const stMap = { winner: ['chip-green', 'победитель'], submitted: ['chip-blue', 'заявка подана'], rejected: ['chip-red', 'отклонена'] };
+
+  return `<div class="card">
+    <div class="card-h"><h3>Закупка по 44-ФЗ</h3>
+      <span class="chip ${t.open ? 'chip-blue' : 'chip-grey'}">${t.open ? 'приём заявок открыт' : 'приём заявок закрыт'}</span></div>
+    <div class="facts">
+      <div><span>Номер извещения</span><b>${esc(t.number || '—')}</b></div>
+      <div><span>Способ</span><b>${esc(t.law || 'электронный аукцион')}</b></div>
+      <div><span>Площадка</span><b>${esc(t.platform || 'ЕИС')}</b></div>
+      <div><span>НМЦК</span><b>${rub(t.nmck || p.cost)}</b></div>
+      <div><span>Приём заявок до</span><b>${esc(t.bidsUntil || '—')}</b></div>
+      <div><span>Срок выполнения работ</span><b>${esc(t.term || '—')}</b></div>
+    </div>
+    <a class="btn btn-p mt20" href="tender.html?id=${p.id}">Перейти к торгам</a>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h3>Участники торгов</h3>
+      <span class="chip chip-grey">${bids.length} ${plural(bids.length, 'заявка', 'заявки', 'заявок')}</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Участник</th><th class="r">Цена, ₽</th><th>Срок</th><th>Опыт</th><th>Статус</th></tr></thead>
+      <tbody>${bids.map(b => {
+        const s = stMap[b.status] || stMap.submitted;
+        return `<tr>
+          <td><b>${esc(b.contractorName)}</b><br><small class="muted">ИНН ${esc(b.inn)}</small></td>
+          <td class="r strong">${fmt(b.price)}</td>
+          <td>${esc(b.term)}</td>
+          <td><small>${esc(b.exp)}<br><span class="muted">исполнено ${b.done}, срывов ${b.fail}</span></small></td>
+          <td><span class="chip ${s[0]}">${s[1]}</span>${b.why ? `<br><small class="muted">${esc(b.why)}</small>` : ''}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="5" class="muted">Заявок пока нет</td></tr>'}</tbody>
+    </table></div>
+    ${win ? `<div class="note note-g mt20"><b>Победитель: ${esc(win.contractorName)}.</b>
+      Цена контракта ${rub(win.price)}${t.nmck ? ', экономия ' + rub(t.nmck - win.price) + ' от НМЦК' : ''}.
+      ${p.contract ? 'Контракт ' + esc(p.contract.number) + '.' : ''}</div>` : ''}
+  </div>`;
+}
+
+/* ---------------- Вкладка: работы и отчёты ---------------- */
+function paneWorks() {
+  if (!p.contract) {
+    return placeholder('Реализация и отчёты подрядчика',
+      'Раздел открывается после заключения муниципального контракта: подрядчик ведёт график, публикует отчёты с фотографиями и документами, жители оставляют замечания.');
+  }
+  const c = p.contract;
+  const contractor = DB.user(c.contractorId) || { name: '—' };
+  const prog = DB.worksProgress(p.id);
+  const reports = DB.reports(p.id);
+  const issues = DB.issues(p.id, Session.is('admin') ? {} : { published: true });
+  const stMap = { done: ['chip-green', 'выполнено'], now: ['chip-amber', 'в работе'], wait: ['chip-grey', 'ожидает'] };
+  const repSt = { sent: ['chip-blue', 'отправлен, ждёт приёмки'], accepted: ['chip-green', 'принят администрацией'], returned: ['chip-red', 'возвращён на доработку'] };
+
+  return `<div class="card">
+    <div class="card-h"><h3>Ход работ</h3>
+      <span class="chip ${prog === 100 ? 'chip-green' : 'chip-amber'}">${prog}% выполнено</span></div>
+    <div class="bar bar-lg ${prog === 100 ? 'ok' : ''}"><i style="width:${prog}%"></i></div>
+    <div class="facts mt20">
+      <div><span>Контракт</span><b>${esc(c.number)}</b></div>
+      <div><span>Подрядчик</span><b>${esc(contractor.name)}</b></div>
+      <div><span>Цена контракта</span><b>${rub(c.sum)}</b></div>
+      <div><span>Оплачено по актам</span><b>${rub(c.paid)}</b></div>
+      <div><span>Сроки</span><b>${esc(c.start)} — ${esc(c.finish)}</b></div>
+      <div><span>Общественный контроль</span><b>${esc(c.publicCheck || '—')}</b></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="mb20">Исполнительный график<span class="who who-c">ведёт подрядчик</span></h3>
     <div class="tbl-wrap"><table class="tbl">
       <thead><tr><th>Этап работ</th><th>Сроки</th><th class="r">Готовность</th><th>Статус</th></tr></thead>
-      <tbody>${w.plan.map(i => {
-        const s = stMap[i.st];
-        return `<tr><td><b>${i.t}</b></td><td>${i.d}</td>
+      <tbody>${p.plan_items.map(i => {
+        const s = stMap[i.st] || stMap.wait;
+        return `<tr><td><b>${esc(i.t)}</b></td><td>${esc(i.d)}</td>
           <td class="r" style="min-width:130px"><div class="bar ${i.p === 100 ? 'ok' : 'warn'}"><i style="width:${i.p}%"></i></div>
-          <small class="muted">${i.p}%</small></td>
+            <small class="muted">${i.p}%</small></td>
           <td><span class="chip ${s[0]}">${s[1]}</span></td></tr>`;
       }).join('')}</tbody>
     </table></div>
   </div>
+
   <div class="card">
-    <div class="card-h"><h3>Фотоотчёт</h3><span class="chip chip-grey">${w.photos.length} ${plural(w.photos.length, "публикация", "публикации", "публикаций")}</span></div>
-    <div class="shots">${w.photos.map(f => `<div class="shot" style="background:${f.c}">${f.d}<br>${f.t}</div>`).join('')}</div>
+    <div class="card-h"><h3>Отчёты подрядчика</h3>
+      <span class="chip chip-grey">${reports.length} ${plural(reports.length, 'отчёт', 'отчёта', 'отчётов')}</span></div>
+    ${reports.map(r => {
+      const s = repSt[r.status] || repSt.sent;
+      return `<div class="rep">
+        <div class="between mb8">
+          <b>${esc(r.stage)}</b>
+          <span class="chip ${s[0]}">${s[1]}</span>
+        </div>
+        <p class="mb14">${esc(r.text)}</p>
+        <div class="facts mb14">
+          <div><span>Дата выполнения работ</span><b>${dateRU(r.workDate)}</b></div>
+          <div><span>Отчёт отправлен</span><b>${dateTimeRU(r.sentAt)}</b></div>
+        </div>
+        ${photoGrid(r.photos)}
+        ${r.docs && r.docs.length ? `<div class="mt14">${r.docs.map(d =>
+          `<div class="doc"><span class="ic">📎</span><div class="tx"><b>${esc(d.name)}</b><small>${esc(d.size || 'документ')}</small></div>
+           <div class="act"><button class="btn btn-o btn-s" onclick="toast('Демо: документ открылся бы в новой вкладке')">Открыть</button></div></div>`).join('')}</div>` : ''}
+        ${r.adminComment ? `<div class="note note-a mt14">${esc(r.adminComment)}</div>` : ''}
+        ${Session.is('admin') && r.status === 'sent' ? `<div class="flexr mt14">
+          <button class="btn btn-g btn-s" data-accept="${r.id}">Принять отчёт и оплатить этап</button>
+          <button class="btn btn-o btn-s" data-return="${r.id}">Вернуть на доработку</button>
+        </div>` : ''}
+      </div>`;
+    }).join('') || '<p class="muted">Отчётов пока нет.</p>'}
   </div>
+
   <div class="card">
     <div class="card-h"><h3>Замечания жителей</h3><span class="chip chip-blue">общественный контроль</span></div>
-    ${w.issues.length ? w.issues.map(i => `<div class="doc"><span class="ic wait">⚠️</span>
-      <div class="tx"><b>${i.t}</b><small>${i.d} · ${i.who} · ${i.st}</small></div></div>`).join('')
-      : '<p class="muted">Замечаний не поступало.</p>'}
+    ${issues.map(is => {
+      const s = ISSUE_STATUS[is.status];
+      return `<div class="rep">
+        <div class="between mb8"><b>${esc(is.userName)}</b>
+          <span class="flexr"><span class="chip chip-grey">${dateRU(is.date)}</span><span class="chip ${s[0]}">${s[1]}</span></span></div>
+        <p class="mb14">${esc(is.text)}</p>
+        ${photoGrid(is.photos)}
+        ${is.adminComment ? `<div class="note note-b mt14"><b>Ответ:</b> ${esc(is.adminComment)}</div>` : ''}
+        ${Session.is('admin') && is.status === 'moderation' ? `<div class="flexr mt14">
+          <button class="btn btn-g btn-s" data-pub="${is.id}">Опубликовать</button>
+          <button class="btn btn-o btn-s" data-rej="${is.id}">Отклонить</button>
+        </div>` : ''}
+      </div>`;
+    }).join('') || '<p class="muted">Замечаний не поступало.</p>'}
+    ${Session.is('citizen') ? `<button class="btn btn-o mt20" id="issueOpen">Оставить замечание</button>` : ''}
   </div>`;
 }
 
+/* ---------------- Вкладка: итоги ---------------- */
 function paneReport() {
-  if (!p.report) return placeholder('Итоговый отчёт', 'Отчёт публикуется администрацией в течение 30 календарных дней после завершения работ: сколько собрали жители, сколько добавил город, куда ушла экономия и что вернули плательщикам.');
+  if (!p.report && p.status !== 'refunded') {
+    return placeholder('Итоговый отчёт',
+      'Отчёт публикуется администрацией после приёмки объекта: сколько собрали жители, сколько добавил город, куда ушла экономия и что вернули плательщикам.');
+  }
+  if (p.status === 'refunded') {
+    const back = DB.tx(p.id).filter(t => t.status === 'refunded').reduce((s, t) => s + t.amount, 0);
+    return `<div class="card">
+      <div class="card-h"><h3>Проект не реализован</h3><span class="chip chip-red">средства возвращены</span></div>
+      <p class="lead">Сбор или реализация не состоялись. По ст. 70 ФЗ-33 инициативные платежи возвращены
+        плательщикам на карты, с которых поступила оплата.</p>
+      <div class="facts mt20">
+        <div><span>Возвращено всего</span><b>${rub(back)}</b></div>
+        <div><span>Транзакций возврата</span><b>${DB.tx(p.id).filter(t => t.status === 'refunded').length}</b></div>
+      </div>
+    </div>`;
+  }
   const r = p.report;
   return `<div class="card">
     <div class="card-h"><h3>Итоговый отчёт</h3><span class="chip chip-green"><span class="dt"></span>Проект завершён</span></div>
@@ -358,174 +528,290 @@ function paneReport() {
       <div class="kpi a"><b>${rub(r.rest)}</b><span>экономия по итогам торгов</span></div>
     </div>
     <div class="facts">
-      <div><span>Объект открыт</span><b>${r.openedAt}</b></div>
-      <div><span>Отчёт опубликован</span><b>${r.published}</b></div>
+      <div><span>Объект открыт</span><b>${esc(r.openedAt)}</b></div>
+      <div><span>Отчёт опубликован</span><b>${esc(r.published)}</b></div>
       <div><span>Цена контракта</span><b>${rub(r.contractSum)}</b></div>
       <div><span>Возвращено плательщикам</span><b>${rub(r.restBack)}</b></div>
-      <div><span>Экономия осталась в бюджете города</span><b>${rub(r.restToCity)}</b></div>
-      <div><span>Гарантия</span><b>${r.guarantee}</b></div>
-      <div><span>Оценка жителей</span><b>${String(r.rating).replace('.', ',')} из 5 · ${r.votes} ${plural(r.votes, "оценка", "оценки", "оценок")}</b></div>
+      <div><span>Гарантия</span><b>${esc(r.guarantee)}</b></div>
+      <div><span>Оценка жителей</span><b>${String(r.rating).replace('.', ',')} из 5 · ${r.votes} оценок</b></div>
     </div>
     <h4 class="mt28 mb14">Что важно знать</h4>
-    ${r.facts.map(f => `<div class="doc"><span class="ic ok">✓</span><div class="tx"><b>${f}</b></div></div>`).join('')}
-    <div class="note note-g mt20">Излишек взносов возвращается плательщикам, если проект реализован дешевле
-      или не реализован вовсе — это прямое требование ст. 70 ФЗ-33. Платформа делает возврат
-      на ту же карту, с которой был взнос.</div>
+    ${(r.facts || []).map(f => `<div class="doc"><span class="ic ok">✓</span><div class="tx"><b>${esc(f)}</b></div></div>`).join('')}
+  </div>`;
+}
+
+/* ---------------- Вкладка: документы ---------------- */
+function paneDocs() {
+  const st = { approved: ['ok', '✓', 'Принят'], signed: ['ok', '✍️', 'Подписан ЕСИА'], sent: ['wait', '📨', 'Отправлен'], progress: ['wait', '⏳', 'Формируется'], wait: ['', '○', 'Ожидает'] };
+  const pack = p.docsPack ? `<div class="card">
+      <div class="card-h"><h3>Пакет в администрации</h3>
+        <span class="chip ${String(p.docsPack.status).indexOf('Принято') === 0 ? 'chip-green' : 'chip-amber'}">${esc(p.docsPack.status)}</span></div>
+      <div class="facts">
+        <div><span>Отправлено</span><b>${esc(p.docsPack.sentAt)}</b></div>
+        <div><span>Канал</span><b>${esc(p.docsPack.channel)}</b></div>
+        <div><span>Входящий номер</span><b>${esc(p.docsPack.incoming)}</b></div>
+        <div><span>Срок</span><b>${esc(p.docsPack.deadline)}</b></div>
+      </div>
+    </div>` : '';
+
+  return pack + `<div class="card">
+    <div class="card-h"><h3>Документы проекта</h3><span class="chip chip-grey">${(p.docs || []).length}</span></div>
+    ${(p.docs || []).map(d => {
+      const s = st[d.st] || st.wait;
+      return `<div class="doc"><span class="ic ${s[0]}">${s[1]}</span>
+        <div class="tx"><b>${esc(d.name)}</b><small>${s[2]} · ${esc(d.date)} · ${esc(d.by)}</small></div>
+        <div class="act"><button class="btn btn-o btn-s" onclick="toast('Демо: документ открылся бы в формате PDF')">Открыть</button></div></div>`;
+    }).join('') || '<p class="muted">Документы появятся после одобрения заявки.</p>'}
   </div>`;
 }
 
 function placeholder(title, text) {
   return `<div class="card"><h3 class="mb14">${title}</h3><p class="lead">${text}</p>
-    <div class="note note-b mt20">Этап ещё не начался. Когда он откроется, жители получат уведомление,
-      а раздел заполнится документами и фактами автоматически.</div></div>`;
+    <div class="note note-b mt20">Этап ещё не начался — раздел заполнится автоматически,
+      когда проект до него дойдёт.</div></div>`;
 }
 
-/* ---------------- Основная область ---------------- */
+/* ---------------- Вкладки ---------------- */
 function drawMain(activeTab) {
   const list = [
-    ['over', 'Обзор', paneOverview],
+    ['over', 'Обзор и хроника', paneOverview],
     ['smeta', 'Смета', paneSmeta],
+    ['sign', 'Подписи', paneSign],
+    ['money', 'Финансы', paneMoney],
     ['docs', 'Документы', paneDocs],
-    ['tender', 'Выбор подрядчика', paneTender],
-    ['works', 'Отчёт подрядчика', paneWorks],
-    ['report', 'Итоговый отчёт', paneReport]
+    ['tender', 'Торги', paneTender],
+    ['works', 'Работы и отчёты', paneWorks],
+    ['report', 'Итоги', paneReport]
   ];
-  const def = activeTab || ({ idea: 'over', collecting: 'over', documents: 'docs', contractor: 'tender', works: 'works', done: 'report' })[p.stage];
-  document.getElementById('main').innerHTML = `
-    <div class="tabs">${list.map(t => `<button data-t="${t[0]}" class="${t[0] === def ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
-    <div id="pane">${list.find(t => t[0] === def)[2]()}</div>`;
+  const def = activeTab || ({
+    idea: 'over', signing: 'sign', collecting: 'money', documents: 'docs',
+    procurement: 'tender', works: 'works', done: 'report'
+  })[phaseOf(p)] || 'over';
+
+  document.getElementById('main').innerHTML =
+    `<div class="tabs">${list.map(t => `<button data-t="${t[0]}" class="${t[0] === def ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
+     <div id="pane">${list.find(t => t[0] === def)[2]()}</div>`;
+
   document.querySelectorAll('.tabs button').forEach(b =>
     b.addEventListener('click', () => drawMain(b.dataset.t)));
+  bindPane();
 }
 
-/* ---------------- Боковая панель действий ---------------- */
+/* ---------------- Действия внутри вкладок ---------------- */
+function bindPane() {
+  const on = (sel, ev, fn) => document.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn));
+
+  /* смета: правка администрацией */
+  on('#smetaRows input', 'change', e => {
+    const items = p.smeta.slice();
+    const i = +e.target.dataset.sm, f = e.target.dataset.f;
+    items[i][f] = f === 't' ? e.target.value : (parseFloat(e.target.value) || 0);
+    DB.setSmeta(p.id, items);
+    reload();
+    toast('Статья обновлена, итог пересчитан');
+  });
+  on('[data-del]', 'click', e => {
+    const items = p.smeta.slice();
+    items.splice(+e.target.dataset.del, 1);
+    DB.setSmeta(p.id, items);
+    reload();
+    toast('Статья удалена');
+  });
+  const smAdd = document.getElementById('smAdd');
+  if (smAdd) smAdd.addEventListener('click', () => {
+    const items = p.smeta.concat([{ id: uid('sm'), t: '', q: 1, u: 0, unit: 'шт.', by: 'admin' }]);
+    DB.setSmeta(p.id, items);
+    reload();
+    toast('Строка добавлена — заполните название и стоимость');
+  });
+  const smAppr = document.getElementById('smApprove');
+  if (smAppr) smAppr.addEventListener('click', () => {
+    DB.approveSmeta(p.id);
+    reload();
+    toast('Смета утверждена: ' + rub(DB.smetaTotal(p.id)));
+  });
+
+  /* приёмка отчётов и модерация замечаний */
+  on('[data-accept]', 'click', e => {
+    DB.acceptReport(e.target.dataset.accept, true, '');
+    reload(); toast('Отчёт принят, оплата этапа отправлена в казначейство');
+  });
+  on('[data-return]', 'click', e => {
+    DB.acceptReport(e.target.dataset.return, false, 'Требуется приложить акт КС-2 и фото после уборки территории.');
+    reload(); toast('Отчёт возвращён подрядчику');
+  });
+  on('[data-pub]', 'click', e => {
+    DB.moderateIssue(e.target.dataset.pub, 'published', 'Замечание передано подрядчику для устранения.');
+    reload(); toast('Замечание опубликовано');
+  });
+  on('[data-rej]', 'click', e => {
+    DB.moderateIssue(e.target.dataset.rej, 'rejected', 'Замечание не относится к предмету контракта.');
+    reload(); toast('Замечание отклонено');
+  });
+
+  const io = document.getElementById('issueOpen');
+  if (io) io.addEventListener('click', openIssue);
+}
+
+/* ---------------- Боковая панель ---------------- */
 function drawSide() {
-  const r = role();
-  const percent = pct(p);
+  const role = Session.role, st = p.status;
+  const raised = DB.raised(p.id), pct = DB.progress(p.id);
+  const signs = DB.signatures(p.id).length;
   let box = '';
 
-  if (p.stage === 'collecting') {
+  /* --- заявка на проверке --- */
+  if (['draft', 'submitted', 'review', 'rework', 'approved', 'rejected'].includes(st)) {
     box = `<div class="card">
-      <span class="chip chip-blue mb14"><span class="dt"></span>Идёт сбор средств</span>
-      <div class="money"><b>${rub(p.raised)}</b><span>цель ${rub(p.goal)}</span></div>
-      <div class="bar bar-lg mt8 ${percent >= 100 ? 'ok' : ''}"><i style="width:${percent}%"></i></div>
-      <div class="left-sum mt14 ${percent >= 100 ? 'done' : ''}">
-        <span>${percent >= 100 ? 'Цель достигнута' : 'Осталось собрать'}</span><b>${rub(left(p))}</b></div>
+      <span class="chip ${statusOf(p).chip} mb14"><span class="dt"></span>${statusOf(p).n}</span>
+      <div class="facts">
+        <div><span>Инициатор</span><b>${esc(p.ownerName)}</b></div>
+        <div><span>Смета</span><b>${rub(DB.smetaTotal(p.id))}</b></div>
+        <div><span>Смета утверждена</span><b>${p.smetaApproved ? 'да' : 'нет'}</b></div>
+        <div><span>Создан</span><b>${dateRU(p.createdAt)}</b></div>
+      </div>
+      ${p.adminComment ? `<div class="note note-a mt20"><b>Комментарий администрации:</b> ${esc(p.adminComment)}</div>` : ''}
+      ${role === 'admin' ? `
+        ${st === 'submitted' || st === 'review' ? `
+          <button class="btn btn-d btn-full mt20" id="aReview">Взять в работу и проверить</button>
+          <button class="btn btn-g btn-full mt8" id="aApprove">Одобрить заявку</button>
+          <button class="btn btn-o btn-full mt8" id="aRework">Вернуть на доработку</button>
+          <button class="btn btn-o btn-full mt8" id="aReject">Отклонить</button>` : ''}
+        ${st === 'approved' ? `<button class="btn btn-g btn-full mt20" id="aPublish">Опубликовать и открыть сбор подписей</button>
+          <p class="hint muted mt8" style="font-size:12.5px">Проект появится в публичном реестре и перейдёт
+            к этапу «Сбор подписей».</p>` : ''}
+        ${st === 'draft' ? '<div class="note note-b mt20">Черновик заполняет житель. В админке он появится после отправки.</div>' : ''}
+      ` : (p.ownerId === Session.userId ? `
+        ${st === 'draft' ? `<a class="btn btn-p btn-full mt20" href="create.html?id=${p.id}">Продолжить заполнение</a>` : ''}
+        ${st === 'rework' ? `<a class="btn btn-p btn-full mt20" href="create.html?id=${p.id}">Доработать и отправить снова</a>` : ''}
+        <div class="note note-b mt20">Вы автор этой заявки. Статус меняется после решения администрации.</div>
+      ` : '<div class="note note-b mt20">Заявка проходит проверку администрации. После одобрения начнётся сбор подписей.</div>')}
+    </div>`;
+  }
+
+  /* --- сбор подписей --- */
+  else if (st === 'signing') {
+    const mine = Session.userId && DB.hasSigned(p.id, Session.userId);
+    const sp = Math.min(100, Math.round(signs / p.signNeed * 100));
+    box = `<div class="card">
+      <span class="chip chip-violet mb14"><span class="dt"></span>Сбор подписей</span>
+      <div class="money"><b>${signs} из ${p.signNeed}</b><span>подписей</span></div>
+      <div class="bar bar-lg mt8 warn"><i style="width:${sp}%"></i></div>
+      <p class="muted mt14" style="font-size:13.5px">Нужно не менее ${p.signNeed} жителей старше 18 лет
+        (ст. 49 ФЗ-33). Когда наберётся норма, платформа сформирует протокол и откроет сбор средств.</p>
+      ${mine
+        ? '<div class="note note-g mt20"><b>Вы уже подписали этот проект.</b> Повторная подпись не создаёт дубликат.</div>'
+        : `<button class="btn btn-p btn-full mt20" id="sign">Подписать проект</button>
+           <p class="hint muted mt8" style="font-size:12.5px">${role === 'citizen'
+             ? 'Подпись через Госуслуги, займёт минуту.'
+             : 'Потребуется вход через Госуслуги — после входа вы вернётесь на эту страницу.'}</p>`}
+      ${role === 'admin' ? `<button class="btn btn-o btn-full mt8" id="aRefund">Признать нереализованным и вернуть средства</button>` : ''}
+    </div>`;
+  }
+
+  /* --- сбор средств --- */
+  else if (st === 'collecting' || st === 'goal') {
+    const supported = Session.userId && DB.tx(p.id).some(t => t.userId === Session.userId && t.status === 'confirmed');
+    box = `<div class="card">
+      <span class="chip ${st === 'goal' ? 'chip-green' : 'chip-blue'} mb14"><span class="dt"></span>${statusOf(p).n}</span>
+      <div class="money"><b>${rub(raised)}</b><span>цель ${rub(p.goal)}</span></div>
+      <div class="bar bar-lg mt8 ${pct >= 100 ? 'ok' : ''}"><i style="width:${pct}%"></i></div>
+      <div class="left-sum mt14 ${pct >= 100 ? 'done' : ''}">
+        <span>${pct >= 100 ? 'Цель достигнута' : 'Осталось собрать'}</span><b>${rub(DB.leftToRaise(p.id))}</b></div>
       <div class="facts mt14">
-        <div><span>Собрано</span><b>${percent}%</b></div>
-        <div><span>Поддержали</span><b>${p.donors} чел.</b></div>
-        <div><span>Срок по договору</span><b>${p.deadline}</b></div>
+        <div><span>Собрано</span><b>${pct}%</b></div>
+        <div><span>Участников</span><b>${DB.donors(p.id)}</b></div>
+        <div><span>Срок по договору</span><b>${esc(p.deadline)}</b></div>
         <div><span>Осталось времени</span><b>${p.daysLeft ? days(p.daysLeft) : 'сбор закрыт'}</b></div>
       </div>
-      ${r === 'admin'
-        ? `<button class="btn btn-d btn-full mt20" id="aClose">Закрыть сбор и сформировать пакет</button>
-           <p class="hint mt8 muted">Действие доступно куратору инициативного бюджетирования.</p>`
-        : `<button class="btn btn-p btn-full mt20" id="pay">Поддержать проект</button>
-           <p class="hint mt8 muted" style="font-size:12.5px">Оплата картой или СБП. Договор пожертвования и чек придут в личный кабинет.</p>`}
+      ${supported ? '<div class="note note-g mt20"><b>Ваш взнос учтён.</b> Он виден в разделе «Финансы» и в вашем кабинете.</div>' : ''}
+      ${st === 'collecting' ? `<button class="btn btn-p btn-full mt20" id="pay">Поддержать проект</button>` : ''}
+      ${role === 'admin' ? `
+        ${st === 'goal' ? `<button class="btn btn-g btn-full mt20" id="aPack">Сформировать пакет документов</button>` : ''}
+        <button class="btn btn-o btn-full mt8" id="aRefund">Признать нереализованным и вернуть средства</button>` : ''}
     </div>
     <div class="card"><h4 class="mb14">Что будет с деньгами</h4>
-      <div class="doc"><span class="ic">1</span><div class="tx"><b>Взнос резервируется</b><small>договор пожертвования и чек</small></div></div>
+      <div class="doc"><span class="ic">1</span><div class="tx"><b>Взнос фиксируется транзакцией</b><small>договор пожертвования и чек</small></div></div>
       <div class="doc"><span class="ic">2</span><div class="tx"><b>Перевод в бюджет города</b><small>реестром, по п. 8.2</small></div></div>
       <div class="doc"><span class="ic">3</span><div class="tx"><b>Возврат, если проект не пойдёт</b><small>ст. 70 ФЗ-33</small></div></div>
     </div>`;
   }
 
-  else if (p.stage === 'idea') {
-    const sp = Math.round(p.signatures.count / p.signatures.need * 100);
-    box = `<div class="card">
-      <span class="chip chip-violet mb14"><span class="dt"></span>Сбор подписей группы</span>
-      <div class="money"><b>${p.signatures.count} из ${p.signatures.need}</b><span>подписей</span></div>
-      <div class="bar bar-lg mt8 warn"><i style="width:${Math.min(100, sp)}%"></i></div>
-      <p class="muted mt14" style="font-size:13.5px">Заявку вносит группа не менее 10 жителей старше 18 лет
-        (ст. 49 ФЗ-33). Подпись ставится через Госуслуги за минуту — бумажные листы не нужны.</p>
-      ${r === 'citizen'
-        ? `<button class="btn btn-p btn-full mt20" id="sign">Подписать заявку</button>`
-        : `<a class="btn btn-o btn-full mt20" href="login.html?role=citizen">Войти и подписать</a>`}
-    </div>`;
-  }
-
-  else if (p.stage === 'documents') {
+  /* --- документы --- */
+  else if (st === 'documents') {
     box = `<div class="card">
       <span class="chip chip-cyan mb14"><span class="dt"></span>Документы у администрации</span>
       <div class="facts">
-        <div><span>Пакет отправлен</span><b>${p.docsPack.sentAt}</b></div>
-        <div><span>Входящий</span><b>${p.docsPack.incoming}</b></div>
-        <div><span>Документов</span><b>${p.docs.length}</b></div>
-        <div><span>Срок ответа</span><b>${p.docsPack.deadline}</b></div>
+        ${p.docsPack ? `<div><span>Пакет отправлен</span><b>${esc(p.docsPack.sentAt)}</b></div>
+        <div><span>Входящий</span><b>${esc(p.docsPack.incoming)}</b></div>` : ''}
+        <div><span>Документов</span><b>${(p.docs || []).length}</b></div>
+        <div><span>Собрано жителями</span><b>${rub(raised)}</b></div>
       </div>
-      ${r === 'admin'
-        ? `<button class="btn btn-g btn-full mt20" id="aAccept">Принять пакет и объявить закупку</button>
-           <button class="btn btn-o btn-full mt8" id="aReturn">Вернуть на доработку</button>`
-        : `<div class="note note-b mt20">Пока пакет проверяет администрация, от жителей ничего не требуется.
-             Как только документы примут, проект перейдёт к выбору подрядчика.</div>`}
+      ${role === 'admin'
+        ? `<button class="btn btn-g btn-full mt20" id="aAccept">Принять пакет и объявить торги</button>
+           <button class="btn btn-o btn-full mt8" id="aRefund">Признать нереализованным и вернуть средства</button>`
+        : '<div class="note note-b mt20">Пакет проверяет администрация. После приёма проект перейдёт к торгам.</div>'}
     </div>`;
   }
 
-  else if (p.stage === 'contractor') {
-    const win = p.tender.bids.find(b => b.st === 'winner');
+  /* --- торги --- */
+  else if (st === 'procurement') {
+    const bids = DB.bids(p.id);
+    const mine = Session.userId && DB.hasBid(p.id, Session.userId);
     box = `<div class="card">
-      <span class="chip chip-violet mb14"><span class="dt"></span>Закупка по 44-ФЗ</span>
+      <span class="chip chip-violet mb14"><span class="dt"></span>Торги по 44-ФЗ</span>
       <div class="facts">
-        <div><span>НМЦК</span><b>${rub(p.tender.nmck)}</b></div>
-        <div><span>Заявок</span><b>${p.tender.bids.length}</b></div>
-        <div><span>Победитель</span><b>${win ? win.name : 'определяется'}</b></div>
-        <div><span>Цена контракта</span><b>${win ? rub(win.price) : '—'}</b></div>
-        <div><span>Экономия</span><b>${win ? rub(p.tender.nmck - win.price) : '—'}</b></div>
+        <div><span>НМЦК</span><b>${rub(p.tender ? p.tender.nmck : p.cost)}</b></div>
+        <div><span>Заявок подано</span><b>${bids.length}</b></div>
+        <div><span>Приём заявок до</span><b>${esc(p.tender ? p.tender.bidsUntil : '—')}</b></div>
       </div>
-      ${r === 'admin'
-        ? `<button class="btn btn-g btn-full mt20" id="aContract">Заключить контракт и передать подрядчику</button>`
-        : r === 'contractor'
-          ? `<div class="note note-g mt20">Ваша организация признана победителем. После подписания контракта
-               в кабинете откроется загрузка исполнительного графика.</div>`
-          : `<div class="note note-b mt20">Торги проходят в ЕИС. Платформа показывает заявки, цены и опыт
-               участников, чтобы жители видели, кому достанется их проект.</div>`}
+      <a class="btn btn-p btn-full mt20" href="tender.html?id=${p.id}">Перейти к торгам</a>
+      ${role === 'contractor' && !mine ? '<p class="hint muted mt8" style="font-size:12.5px">На странице торгов можно подать заявку на участие.</p>' : ''}
+      ${role === 'contractor' && mine ? '<div class="note note-g mt14">Ваша заявка подана и участвует в отборе.</div>' : ''}
+      ${role === 'admin' ? '<p class="hint muted mt8" style="font-size:12.5px">Победитель выбирается на странице торгов.</p>' : ''}
     </div>`;
   }
 
-  else if (p.stage === 'works') {
-    const w = p.works;
+  /* --- работы --- */
+  else if (st === 'works' || st === 'reporting') {
+    const prog = DB.worksProgress(p.id);
+    const c = p.contract || {};
     box = `<div class="card">
-      <span class="chip chip-amber mb14"><span class="dt"></span>Работы идут</span>
-      <div class="money"><b>${w.progress}%</b><span>выполнено</span></div>
-      <div class="bar bar-lg mt8"><i style="width:${w.progress}%"></i></div>
+      <span class="chip chip-amber mb14"><span class="dt"></span>${statusOf(p).n}</span>
+      <div class="money"><b>${prog}%</b><span>выполнено</span></div>
+      <div class="bar bar-lg mt8"><i style="width:${prog}%"></i></div>
       <div class="facts mt14">
-        <div><span>Подрядчик</span><b>${w.contractor}</b></div>
-        <div><span>Контракт</span><b>${w.contract}</b></div>
-        <div><span>Сдача объекта</span><b>${w.finish}</b></div>
-        <div><span>Оплачено по актам</span><b>${rub(w.paid)}</b></div>
+        <div><span>Подрядчик</span><b>${esc((DB.user(c.contractorId) || {}).name || '—')}</b></div>
+        <div><span>Контракт</span><b>${esc(c.number || '—')}</b></div>
+        <div><span>Оплачено по актам</span><b>${rub(c.paid || 0)}</b></div>
+        <div><span>Отчётов подано</span><b>${DB.reports(p.id).length}</b></div>
       </div>
-      ${r === 'contractor'
-        ? `<button class="btn btn-g btn-full mt20" id="cShot">Опубликовать фотоотчёт</button>
-           <button class="btn btn-o btn-full mt8" id="cStep">Закрыть текущий этап</button>`
-        : r === 'admin'
-          ? `<button class="btn btn-d btn-full mt20" id="aAct">Принять акт КС-2</button>
-             <button class="btn btn-o btn-full mt8" id="aDone">Принять объект и опубликовать отчёт</button>`
-          : `<button class="btn btn-o btn-full mt20" id="issue">Сообщить о замечании</button>
-             <p class="hint mt8 muted" style="font-size:12.5px">Замечание увидят подрядчик и куратор проекта.</p>`}
+      ${role === 'contractor' && c.contractorId === Session.userId
+        ? `<button class="btn btn-g btn-full mt20" id="cReport">Создать отчёт по этапу</button>` : ''}
+      ${role === 'citizen' ? `<button class="btn btn-o btn-full mt20" id="issueSide">Оставить замечание</button>` : ''}
+      ${role === 'admin' ? `
+        <button class="btn btn-d btn-full mt20" id="aReporting">Перевести в стадию отчётности</button>
+        <button class="btn btn-g btn-full mt8" id="aFinish">Принять объект и завершить проект</button>` : ''}
     </div>`;
   }
 
-  else if (p.stage === 'done') {
-    const r2 = p.report;
+  /* --- завершён / возврат --- */
+  else {
     box = `<div class="card">
-      <span class="chip chip-green mb14"><span class="dt"></span>Проект завершён</span>
-      <div class="money"><b>${String(r2.rating).replace('.', ',')} из 5</b><span>${r2.votes} ${plural(r2.votes, "оценка", "оценки", "оценок")}</span></div>
-      <div class="bar bar-lg ok mt8"><i style="width:${r2.rating / 5 * 100}%"></i></div>
-      <div class="facts mt14">
-        <div><span>Открыт</span><b>${r2.openedAt}</b></div>
-        <div><span>Жители вложили</span><b>${rub(r2.citizens)}</b></div>
-        <div><span>Возвращено</span><b>${rub(r2.restBack)}</b></div>
-        <div><span>Гарантия</span><b>${r2.guarantee}</b></div>
+      <span class="chip ${statusOf(p).chip} mb14"><span class="dt"></span>${statusOf(p).n}</span>
+      <div class="facts">
+        <div><span>Жители вложили</span><b>${rub(raised)}</b></div>
+        <div><span>Участников</span><b>${DB.donors(p.id)}</b></div>
+        <div><span>Подписей</span><b>${signs}</b></div>
+        ${p.report ? `<div><span>Оценка жителей</span><b>${String(p.report.rating).replace('.', ',')} из 5</b></div>` : ''}
       </div>
-      <button class="btn btn-o btn-full mt20" onclick="toast('Демо: открылся бы PDF итогового отчёта')">Скачать итоговый отчёт</button>
+      <a class="btn btn-o btn-full mt20" href="passport.html?id=${p.id}">🖨 Паспорт проекта</a>
     </div>`;
   }
 
   box += `<div class="card">
     <h4 class="mb14">Документы и ссылки</h4>
     <a class="btn btn-o btn-full" href="passport.html?id=${p.id}">🖨 Паспорт проекта для печати</a>
-    <p class="hint muted mt8" style="font-size:12.5px">Одна страница А4 со сметой, сроками, документами
-      и QR-кодом на карточку — то, что можно отдать комиссии или приложить к обращению.</p>
     <div class="flexr mt14">
       <button class="btn btn-ghost btn-s" onclick="navigator.clipboard&&navigator.clipboard.writeText(location.href);toast('Ссылка скопирована')">Скопировать ссылку</button>
       <button class="btn btn-ghost btn-s" onclick="toast('Демо: подписка на уведомления включена')">Следить за проектом</button>
@@ -539,151 +825,79 @@ function drawSide() {
 function bindSide() {
   const on = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
 
-  on('pay', () => {
-    if (role() !== 'citizen') { toast('Для взноса нужен вход через Госуслуги'); setTimeout(() => location.href = 'login.html?role=citizen&next=' + p.id, 900); return; }
-    document.getElementById('payTitle').textContent = p.title + ' · доля жителей ' + rub(p.goal);
-    openModal('mPay');
+  /* житель */
+  on('sign', () => doSign());
+  on('pay', () => doPay());
+  on('issueSide', () => { if (requireAuth('citizen', 'issue')) openIssue(); });
+
+  /* администрация */
+  on('aReview', () => { DB.setStatus(p.id, 'review', { title: 'Заявка взята в работу', text: 'Куратор проверяет состав заявки, смету и территорию.' }); reload(); toast('Заявка на проверке'); });
+  on('aApprove', () => {
+    if (!p.smetaApproved) DB.approveSmeta(p.id);
+    DB.setStatus(p.id, 'approved', { title: 'Заявка одобрена', text: 'Комиссия одобрила проект. Смета зафиксирована: ' + rub(DB.smetaTotal(p.id)) + '.' });
+    reload(); toast('Заявка одобрена — можно публиковать');
   });
-
-  on('sign', () => {
-    const s = Object.assign({}, p.signatures);
-    s.count += 1;
-    const patch = { signatures: s };
-    if (s.count >= s.need) { patch.stage = 'collecting'; patch.daysLeft = 40; patch.deadline = 'через 40 рабочих дней'; }
-    State.patch(p.id, patch);
-    p = project(p.id);
-    toast(s.count >= s.need ? 'Подпись учтена. Собрано 10 подписей — заявка уходит на отбор' : 'Подпись через Госуслуги учтена: ' + s.count + ' из ' + s.need);
-    redraw();
+  on('aRework', () => openDecide('rework', 'Вернуть на доработку', 'Инициатор увидит комментарий и сможет исправить заявку.'));
+  on('aReject', () => openDecide('rejected', 'Отклонить заявку', 'Укажите основание отказа (ч. 4 ст. 26.1 / ст. 49).'));
+  on('aPublish', () => {
+    DB.setStatus(p.id, 'signing', { title: 'Проект опубликован', text: 'Проект появился в публичном реестре, открыт сбор подписей жителей.' });
+    reload(); toast('Проект опубликован, идёт сбор подписей');
   });
-
-  on('aClose', () => { move('documents', 'Сбор закрыт, пакет документов сформирован и отправлен в администрацию'); });
-  on('aAccept', () => { move('contractor', 'Пакет принят, средства зачислены в бюджет города, закупка объявлена'); });
-  on('aReturn', () => { toast('Демо: проект возвращён инициатору с указанием причины'); });
-  on('aContract', () => { move('works', 'Контракт заключён, подрядчик получил доступ к графику работ'); });
-  on('aAct', () => { toast('Акт КС-2 принят, оплата этапа отправлена в казначейство'); });
-  on('aDone', () => { move('done', 'Объект принят, итоговый отчёт опубликован'); });
-
-  on('cShot', () => openModal('mShot'));
-  on('cStep', () => {
-    const w = JSON.parse(JSON.stringify(p.works));
-    const i = w.plan.findIndex(x => x.st !== 'done');
-    if (i < 0) { toast('Все этапы закрыты'); return; }
-    w.plan[i].p = 100; w.plan[i].st = 'done';
-    if (w.plan[i + 1]) w.plan[i + 1].st = 'now';
-    w.progress = Math.round(w.plan.reduce((s, x) => s + x.p, 0) / w.plan.length);
-    State.patch(p.id, { works: w });
-    p = project(p.id);
-    toast('Этап «' + w.plan[i].t + '» закрыт, готовность ' + w.progress + '%');
-    redraw();
-  });
-
-  on('issue', () => openModal('mIssue'));
-}
-
-/* Если проект переводят на этап, данных для которого в демо ещё нет,
-   платформа достраивает их так, как сделала бы в реальном процессе. */
-function synth(to) {
-  const patch = { stage: to };
-
-  if (to === 'documents' && !p.docsPack) {
-    patch.docsPack = {
-      sentAt: '05 октября 2026, 14:20',
-      channel: 'ЕСИА → СЭД администрации г. Обнинска',
-      incoming: 'вх. № 4210-ИБ от 05.10.2026',
-      deadline: 'ответ администрации — до 19 октября 2026',
-      status: 'На проверке в администрации'
+  on('aPack', () => {
+    const p2 = DB.project(p.id);
+    p2.docsPack = {
+      sentAt: dateTimeRU(nowISO()), channel: 'ЕСИА → СЭД администрации г. Обнинска',
+      incoming: 'вх. № ' + Math.floor(4200 + Math.random() * 99) + '-ИБ от ' + dateRU(nowISO()),
+      deadline: 'ответ администрации — 14 календарных дней', status: 'На проверке в администрации'
     };
-    patch.docs = p.docs.concat([
-      { name: 'Реестр взносов жителей (' + p.donors + ' платежей)', st: 'signed', date: '05.10.2026', by: 'платформа' },
-      { name: 'Договоры пожертвования и кассовые чеки', st: 'signed', date: '05.10.2026', by: 'платформа' },
-      { name: 'Платёжное поручение в бюджет города', st: 'sent', date: '05.10.2026', by: 'банк-партнёр' },
-      { name: 'Сопроводительное письмо в администрацию', st: 'sent', date: '05.10.2026', by: 'инициатор (ЕСИА)' }
+    p2.docs = (p2.docs || []).concat([
+      { name: 'Реестр взносов жителей (' + DB.tx(p.id).filter(t => t.status === 'confirmed').length + ' платежей)', st: 'signed', date: dateRU(nowISO()), by: 'платформа' },
+      { name: 'Договоры пожертвования и кассовые чеки', st: 'signed', date: dateRU(nowISO()), by: 'платформа' },
+      { name: 'Платёжное поручение в бюджет города', st: 'sent', date: dateRU(nowISO()), by: 'банк-партнёр' }
     ]);
-  }
-
-  if (to === 'contractor' && !p.tender) {
-    const win = Math.round(p.cost * 0.9 / 100) * 100;
-    patch.tender = {
-      number: '01373000128260005' + (10 + stageIndex(p.stage)),
-      law: '44-ФЗ, электронный аукцион',
-      platform: 'ЕИС / РТС-тендер',
-      nmck: p.cost,
-      published: '12 октября 2026',
-      bidsUntil: '26 октября 2026',
-      auctionAt: '29 октября 2026',
-      term: '50 календарных дней с даты контракта',
-      status: 'Заявки рассмотрены, победитель определён',
-      bids: [
-        { name: 'ООО «Обнинскстройсервис»', inn: '4025 118 345', price: win, dis: 10, term: '48 дней', exp: '14 объектов благоустройства с 2019 г.', done: 14, fail: 0, st: 'winner' },
-        { name: 'ООО «Калугадорстрой»', inn: '4028 077 210', price: Math.round(p.cost * 0.95 / 100) * 100, dis: 5, term: '50 дней', exp: '9 контрактов по благоустройству', done: 9, fail: 1, st: 'second' }
-      ]
+    DB.setStatus(p.id, 'documents', { title: 'Пакет документов сформирован', text: 'Реестр взносов, договоры и платёжное поручение подписаны и отправлены в администрацию.', actor: 'платформа' });
+    reload(); toast('Пакет сформирован и отправлен');
+  });
+  on('aAccept', () => {
+    const p2 = DB.project(p.id);
+    if (p2.docsPack) p2.docsPack.status = 'Принято администрацией';
+    if (!p2.tender) p2.tender = {
+      number: '01373000128' + Math.floor(26000000 + Math.random() * 999999),
+      law: '44-ФЗ, электронный аукцион', platform: 'ЕИС / РТС-тендер',
+      nmck: p2.cost, published: dateRU(nowISO()), bidsUntil: 'через 14 дней',
+      auctionAt: 'через 17 дней', term: '50 календарных дней с даты контракта', open: true
     };
-  }
+    else p2.tender.open = true;
+    DB.setStatus(p.id, 'procurement', { title: 'Объявлены торги по 44-ФЗ', text: 'Средства зачислены в бюджет города, опубликовано извещение № ' + p2.tender.number + ', НМЦК ' + rub(p2.tender.nmck) + '.' });
+    reload(); toast('Торги объявлены — подрядчики могут подавать заявки');
+  });
+  on('aReporting', () => { DB.setStatus(p.id, 'reporting', { title: 'Стадия отчётности', text: 'Работы завершены, идёт приёмка документов и подготовка итогового отчёта.' }); reload(); toast('Проект переведён в стадию отчётности'); });
+  on('aFinish', () => finishProject());
+  on('aRefund', () => openDecide('refund', 'Признать проект нереализованным', 'Все подтверждённые взносы будут возвращены плательщикам (ст. 70 ФЗ-33).'));
 
-  if (to === 'works' && !p.works) {
-    const t = p.tender || (patch.tender);
-    const win = t.bids.find(b => b.st === 'winner');
-    patch.works = {
-      contract: '№ 58-МК/2026 от 05.11.2026',
-      contractor: win.name,
-      sum: win.price,
-      paid: 0,
-      start: '10 ноября 2026',
-      finish: '28 декабря 2026',
-      progress: 0,
-      curator: 'Отдел благоустройства администрации г. Обнинска',
-      publicCheck: '3 общественных инспектора от инициативной группы',
-      plan: [
-        { t: 'Подготовка территории', p: 0, st: 'now', d: '10.11 — 17.11' },
-        { t: 'Основные строительные работы', p: 0, st: 'wait', d: '18.11 — 08.12' },
-        { t: 'Монтаж оборудования', p: 0, st: 'wait', d: '09.12 — 20.12' },
-        { t: 'Благоустройство и сдача объекта', p: 0, st: 'wait', d: '21.12 — 28.12' }
-      ],
-      photos: [],
-      issues: []
-    };
-  }
-
-  if (to === 'done' && !p.report) {
-    const w = p.works || patch.works;
-    const rest = p.cost - w.sum;
-    patch.report = {
-      openedAt: '28 декабря 2026',
-      published: '15 января 2027',
-      contractSum: w.sum,
-      citizens: p.raised,
-      cityBudget: p.cost - p.goal - Math.round((p.cost - p.goal) * 0.35),
-      regionSubsidy: Math.round((p.cost - p.goal) * 0.35),
-      rest: rest,
-      restBack: Math.max(0, p.raised - p.goal),
-      restToCity: rest - Math.max(0, p.raised - p.goal),
-      rating: 4.7,
-      votes: Math.round(p.donors * 0.7),
-      guarantee: 'Гарантия подрядчика — 3 года',
-      facts: [
-        'Объект принят комиссией с участием общественных инспекторов от инициативной группы.',
-        'Экономия по итогам аукциона осталась в бюджете города и учтена в отчёте.',
-        'Излишки взносов возвращены плательщикам на карты, с которых поступила оплата (ст. 70 ФЗ-33).'
-      ]
-    };
-    if (patch.works || p.works) {
-      const w2 = JSON.parse(JSON.stringify(w));
-      w2.plan.forEach(i => { i.p = 100; i.st = 'done'; });
-      w2.progress = 100; w2.paid = w2.sum;
-      patch.works = w2;
-    }
-  }
-  return patch;
+  /* подрядчик */
+  on('cReport', () => openReport());
 }
 
-function move(to, msg) {
-  State.patch(p.id, synth(to));
-  p = project(p.id);
-  toast(msg);
-  redraw();
+/* ---------- Подпись ---------- */
+function doSign() {
+  if (!requireAuth('citizen', 'sign')) return;
+  const res = DB.sign(p.id, Session.userId);
+  reload();
+  if (!res.added) { toast('Вы уже подписали этот проект'); return; }
+  toast(res.moved
+    ? 'Подпись учтена. Набрано ' + res.count + ' подписей — открыт сбор средств'
+    : 'Подпись учтена: ' + res.count + ' из ' + p.signNeed);
 }
 
-/* ---------------- Модальные окна ---------------- */
+/* ---------- Взнос ---------- */
+function doPay() {
+  if (!requireAuth('citizen', 'pay')) return;
+  document.getElementById('payTitle').textContent = p.title + ' · доля жителей ' + rub(p.goal) +
+    ', осталось ' + rub(DB.leftToRaise(p.id));
+  openModal('mPay');
+}
+
 document.querySelectorAll('#amounts button').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('#amounts button').forEach(x => x.classList.toggle('on', x === b));
   document.getElementById('paySum').value = b.dataset.v;
@@ -691,46 +905,149 @@ document.querySelectorAll('#amounts button').forEach(b => b.addEventListener('cl
 
 document.getElementById('payGo').addEventListener('click', () => {
   const v = Math.max(1, parseInt(document.getElementById('paySum').value || '0', 10));
-  State.patch(p.id, {
-    raised: p.raised + v,
-    donors: p.donors + 1,
-    feed: [{ n: 'Вы', s: v, d: 'только что' }].concat(feed(p)).slice(0, 8)
-  });
-  p = project(p.id);
+  const t = DB.pay(p.id, Session.userId, v, 'confirmed');
   closeModal('mPay');
-  toast('Взнос ' + rub(v) + ' принят. Договор и чек — в личном кабинете');
-  if (p.raised >= p.goal) setTimeout(() => toast('Цель достигнута! Платформа формирует пакет документов'), 2000);
-  redraw();
+  const reached = DB.project(p.id).status === 'goal';
+  reload();
+  toast('Взнос ' + rub(v) + ' принят · ' + t.no);
+  if (reached) setTimeout(() => toast('Цель достигнута! Сбор закрыт, проект переходит к документам'), 2200);
 });
 
-document.getElementById('issueGo').addEventListener('click', () => {
-  const t = document.getElementById('issueText').value.trim();
-  if (!t) { toast('Опишите замечание'); return; }
-  const w = JSON.parse(JSON.stringify(p.works));
-  w.issues.unshift({ d: '05.10.2026', who: 'житель', t: t, st: 'Передано подрядчику' });
-  State.patch(p.id, { works: w });
-  p = project(p.id);
-  closeModal('mIssue');
+/* ---------- Замечание ---------- */
+let issuePhotos = [];
+function openIssue() {
+  issuePhotos = [];
+  document.getElementById('issuePhotos').innerHTML = '';
   document.getElementById('issueText').value = '';
-  toast('Замечание отправлено подрядчику и куратору проекта');
-  redraw();
+  openModal('mIssue');
+}
+document.getElementById('issueAddPhoto').addEventListener('click', () => {
+  const cap = (document.getElementById('issueText').value || 'Фотография жителя').slice(0, 40);
+  issuePhotos.push(fakePhoto(cap, 'progress'));
+  document.getElementById('issuePhotos').innerHTML = photoGrid(issuePhotos);
+  toast('Фотография прикреплена (' + issuePhotos.length + ')');
+});
+document.getElementById('issueGo').addEventListener('click', () => {
+  const text = document.getElementById('issueText').value.trim();
+  if (!text) { toast('Опишите замечание'); return; }
+  DB.addIssue(p.id, Session.userId, text, issuePhotos);
+  closeModal('mIssue');
+  reload();
+  toast('Замечание отправлено на модерацию администрации');
 });
 
-document.getElementById('shotGo').addEventListener('click', () => {
-  const t = document.getElementById('shotText').value.trim() || 'Работы по текущему этапу';
-  const w = JSON.parse(JSON.stringify(p.works));
-  w.photos.push({ d: '05.10.2026', t: t, c: 'linear-gradient(135deg,#F0A020,#D9542B)' });
-  State.patch(p.id, { works: w });
-  p = project(p.id);
-  closeModal('mShot');
-  document.getElementById('shotText').value = '';
-  toast('Фотоотчёт опубликован — его уже видят жители');
-  redraw();
+/* ---------- Отчёт подрядчика ---------- */
+let repPhotos = [], repDocs = [];
+function openReport() {
+  repPhotos = []; repDocs = [];
+  document.getElementById('repPhotos').innerHTML = '';
+  document.getElementById('repDocs').innerHTML = '';
+  document.getElementById('repText').value = '';
+  document.getElementById('repDate').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('repStage').innerHTML = p.plan_items
+    .map(i => `<option${i.st === 'now' ? ' selected' : ''}>${esc(i.t)}</option>`).join('');
+  openModal('mReport');
+}
+document.querySelectorAll('#mReport [data-kind]').forEach(b => b.addEventListener('click', () => {
+  repPhotos.push(fakePhoto(document.getElementById('repText').value.slice(0, 40) || b.textContent.replace(/[📷\s]/g, ''), b.dataset.kind));
+  document.getElementById('repPhotos').innerHTML = photoGrid(repPhotos);
+  toast('Фотография добавлена (' + repPhotos.length + ')');
+}));
+document.querySelectorAll('#mReport [data-doc]').forEach(b => b.addEventListener('click', () => {
+  repDocs.push({ id: uid('dc'), name: b.dataset.doc + '.pdf', size: (120 + Math.floor(Math.random() * 400)) + ' КБ' });
+  document.getElementById('repDocs').innerHTML = repDocs.map(d =>
+    `<div class="doc"><span class="ic">📎</span><div class="tx"><b>${esc(d.name)}</b><small>${d.size}</small></div></div>`).join('');
+  toast('Документ прикреплён');
+}));
+document.getElementById('repGo').addEventListener('click', () => {
+  const stage = document.getElementById('repStage').value;
+  const text = document.getElementById('repText').value.trim();
+  const date = document.getElementById('repDate').value;
+  const percent = Math.max(0, Math.min(100, parseInt(document.getElementById('repPercent').value || '0', 10)));
+  if (!text) { toast('Опишите выполненные работы'); return; }
+  if (!date) { toast('Укажите дату выполнения работ'); return; }
+  DB.addReport(p.id, Session.userId, {
+    stage, text, workDate: new Date(date).toISOString(), percent, photos: repPhotos, docs: repDocs
+  });
+  closeModal('mReport');
+  reload();
+  toast('Отчёт отправлен · дата отправки зафиксирована системой');
 });
+
+/* ---------- Решение администрации ---------- */
+let decideMode = null;
+function openDecide(mode, title, text) {
+  decideMode = mode;
+  document.getElementById('decTitle').textContent = title;
+  document.getElementById('decText').textContent = text;
+  document.getElementById('decComment').value = '';
+  openModal('mDecide');
+}
+document.getElementById('decGo').addEventListener('click', () => {
+  const c = document.getElementById('decComment').value.trim();
+  if (decideMode === 'refund') {
+    const sum = DB.refund(p.id, c || 'проект не реализован');
+    closeModal('mDecide'); reload();
+    toast('Возвращено ' + rub(sum) + ' плательщикам');
+    return;
+  }
+  if (!c) { toast('Добавьте комментарий для инициатора'); return; }
+  DB.setStatus(p.id, decideMode, {
+    comment: c,
+    title: decideMode === 'rework' ? 'Заявка возвращена на доработку' : 'Заявка отклонена',
+    text: c
+  });
+  closeModal('mDecide'); reload();
+  toast(decideMode === 'rework' ? 'Заявка возвращена инициатору' : 'Заявка отклонена');
+});
+
+/* ---------- Завершение проекта ---------- */
+function finishProject() {
+  const p2 = DB.project(p.id);
+  const raised = DB.raised(p.id);
+  const contractSum = p2.contract ? p2.contract.sum : p2.cost;
+  const rest = Math.max(0, p2.cost - contractSum);
+  const restBack = Math.max(0, raised - p2.goal);
+  p2.plan_items.forEach(i => { i.p = 100; i.st = 'done'; });
+  if (p2.contract) p2.contract.paid = p2.contract.sum;
+  p2.report = {
+    openedAt: dateRU(nowISO()), published: dateRU(nowISO()),
+    contractSum, citizens: raised,
+    cityBudget: Math.max(0, p2.cost - p2.goal - Math.round((p2.cost - p2.goal) * 0.35)),
+    regionSubsidy: Math.round((p2.cost - p2.goal) * 0.35),
+    rest, restBack, restToCity: Math.max(0, rest - restBack),
+    rating: 4.7, votes: Math.max(1, Math.round(DB.donors(p.id) * 0.7)),
+    guarantee: 'Гарантия подрядчика — 3 года',
+    facts: [
+      'Объект принят комиссией с участием общественных инспекторов от инициативной группы.',
+      'Экономия по итогам торгов учтена в отчёте и осталась в бюджете города.',
+      'Излишки взносов возвращены плательщикам на карты, с которых поступила оплата (ст. 70 ФЗ-33).'
+    ]
+  };
+  DB.setStatus(p.id, 'done', {
+    title: 'Проект завершён, опубликован итоговый отчёт',
+    text: 'Объект принят. Жители вложили ' + rub(raised) + ', цена контракта ' + rub(contractSum) + '.'
+  });
+  reload();
+  toast('Проект завершён, итоговый отчёт опубликован');
+}
+
+/* ---------- Отложенное действие после входа ---------- */
+function runIntent() {
+  const it = Intent.peek();
+  if (!it) return;
+  const here = location.pathname.split('/').pop() + location.search;
+  if (it.url && !it.url.endsWith(here)) return;
+  Intent.take();
+  if (it.action === 'sign' && Session.is('citizen')) setTimeout(doSign, 400);
+  if (it.action === 'pay' && Session.is('citizen')) setTimeout(doPay, 400);
+  if (it.action === 'issue' && Session.is('citizen')) setTimeout(openIssue, 400);
+}
 
 /* ---------------- Отрисовка ---------------- */
 function redraw() { drawHead(); drawBanner(); drawSteps(); drawMain(); drawSide(); }
 redraw();
+runIntent();
 </script>
 </body>
 </html>

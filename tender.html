@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Торги · ЭИБ Обнинск</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%2312275C'/%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M24 6 39 14.5v17L24 40 9 31.5v-17z' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28v6.5a2.4 2.4 0 0 0 2.4 2.4h13.2a2.4 2.4 0 0 0 2.4-2.4V28' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28h4M29 28h4' stroke='%23ffffff' stroke-width='2'/%3E%3Cg transform='rotate(-16 24 19)'%3E%3Crect x='20' y='11' width='8.4' height='16' rx='1.4' fill='%23ffffff'/%3E%3Cpath d='m21.9 19 2.1 2.2 4-5.4' stroke='%23E32C26' stroke-width='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="hdr"></div>
+
+<section class="pagehead"><div class="wrap" id="head"></div></section>
+<section class="sec"><div class="wrap split"><div id="main"></div><aside id="side"></aside></div></section>
+
+<!-- Подача заявки подрядчиком -->
+<div class="modal" id="mBid"><div class="modal-box">
+  <button class="modal-x">×</button>
+  <h3>Принять участие в торгах</h3>
+  <p class="muted mb20" id="bidHead"></p>
+  <div class="field"><label>Ваша цена, ₽</label>
+    <input class="inp" type="number" id="bidPrice">
+    <div class="hint">Цена не может превышать НМЦК. Снижение считается автоматически.</div></div>
+  <div class="field"><label>Срок выполнения работ</label>
+    <input class="inp" id="bidTerm" placeholder="Например: 45 календарных дней"></div>
+  <div class="note note-b mb20">В демо-версии заявка сохраняется на платформе и сразу видна
+    администрации и жителям. В реальной закупке заявка подаётся в ЕИС по 44-ФЗ,
+    платформа показывает её статус.</div>
+  <button class="btn btn-g btn-full" id="bidGo">Подать заявку</button>
+</div></div>
+
+<div id="ftr"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/db.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+mount('projects');
+
+const id = param('id');
+let p = id ? DB.project(id) : null;
+const reload = () => { p = DB.project(p.id); draw(); };
+
+/* ---------------- Список всех торгов ---------------- */
+function drawList() {
+  const open = DB.projects().filter(x => x.status === 'procurement');
+  const closed = DB.projects().filter(x => x.tender && x.status !== 'procurement');
+
+  document.getElementById('head').innerHTML = `
+    <div class="crumbs"><a href="index.html">Главная</a> → Торги</div>
+    <span class="eyebrow">Закупки по 44-ФЗ</span>
+    <h2 class="mt8">Торги по инициативным проектам</h2>
+    <p class="lead mt8">Объекты, оплаченные в том числе деньгами жителей. Подрядчик видит условия,
+      подаёт заявку и после победы получает доступ к графику работ и отчётности.</p>`;
+
+  const row = x => {
+    const bids = DB.bids(x.id);
+    const win = bids.find(b => b.status === 'winner');
+    return `<tr>
+      <td><b><a href="tender.html?id=${x.id}">${esc(x.title)}</a></b><br>
+        <small class="muted">${esc(x.district)} · ${esc(x.cat)}</small></td>
+      <td class="r strong">${rub(x.tender ? x.tender.nmck : x.cost)}</td>
+      <td class="r">${bids.length}</td>
+      <td>${esc(x.tender ? x.tender.bidsUntil : '—')}</td>
+      <td>${win ? '<span class="chip chip-green">' + esc(win.contractorName) + '</span>'
+                : '<span class="chip chip-blue">приём заявок</span>'}</td>
+      <td class="r"><a class="btn btn-o btn-s" href="tender.html?id=${x.id}">Открыть</a></td>
+    </tr>`;
+  };
+
+  document.getElementById('main').innerHTML = `
+    <div class="card">
+      <div class="card-h"><h3>Открытые торги</h3><span class="chip chip-blue">${open.length}</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Объект</th><th class="r">НМЦК</th><th class="r">Заявок</th><th>Приём до</th><th>Статус</th><th></th></tr></thead>
+        <tbody>${open.map(row).join('') || '<tr><td colspan="6" class="muted">Открытых торгов сейчас нет</td></tr>'}</tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Состоявшиеся торги</h3><span class="chip chip-grey">${closed.length}</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Объект</th><th class="r">НМЦК</th><th class="r">Заявок</th><th>Приём до</th><th>Победитель</th><th></th></tr></thead>
+        <tbody>${closed.map(row).join('') || '<tr><td colspan="6" class="muted">Нет данных</td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+
+  const me = Session.is('contractor') ? Session.userId : null;
+  document.getElementById('side').innerHTML = `<div class="sticky">
+    <div class="card">
+      <h4 class="mb14">Подрядчики на площадке</h4>
+      ${DB.usersByRole('contractor').map(u => `<div class="doc">
+        <span class="ic ${u.id === me ? 'ok' : ''}">${esc(u.init)}</span>
+        <div class="tx"><b>${esc(u.name)}${u.id === me ? ' · вы' : ''}</b>
+          <small>ИНН ${esc(u.inn || '—')} · исполнено ${u.done || 0}, срывов ${u.fail || 0}</small></div></div>`).join('')}
+    </div>
+    ${me ? `<div class="card"><h4 class="mb14">Мои заявки</h4>
+      ${DB.bidsByContractor(me).map(b => {
+        const pr = DB.project(b.projectId);
+        return `<div class="doc"><span class="ic ${b.status === 'winner' ? 'ok' : 'wait'}">${b.status === 'winner' ? '★' : '•'}</span>
+          <div class="tx"><b>${esc(pr.title)}</b><small>${rub(b.price)} · ${b.status === 'winner' ? 'победа' : 'на рассмотрении'}</small></div>
+          <div class="act"><a class="btn btn-o btn-s" href="tender.html?id=${pr.id}">Открыть</a></div></div>`;
+      }).join('') || '<p class="muted">Заявок пока нет.</p>'}
+    </div>` : ''}
+  </div>`;
+}
+
+/* ---------------- Карточка торгов ---------------- */
+function drawOne() {
+  const t = p.tender || {};
+  const bids = DB.bids(p.id).slice().sort((a, b) => a.price - b.price);
+  const win = bids.find(b => b.status === 'winner');
+  const me = Session.is('contractor') ? Session.userId : null;
+  const myBid = me ? bids.find(b => b.contractorId === me) : null;
+  const open = p.status === 'procurement';
+  const raised = DB.raised(p.id);
+
+  document.getElementById('head').innerHTML = `
+    <div class="crumbs"><a href="index.html">Главная</a> → <a href="tender.html">Торги</a> →
+      <a href="project.html?id=${p.id}">${esc(p.title)}</a></div>
+    <div class="between">
+      <div style="max-width:720px">
+        <div class="flexr mb14">
+          <span class="chip ${open ? 'chip-blue' : 'chip-grey'}"><span class="dt"></span>${open ? 'Приём заявок открыт' : 'Приём заявок закрыт'}</span>
+          <span class="chip chip-grey">${esc(t.law || '44-ФЗ, электронный аукцион')}</span>
+        </div>
+        <h2>Торги: ${esc(p.title)}</h2>
+        <p class="lead mt8">Извещение ${esc(t.number || '—')} · площадка ${esc(t.platform || 'ЕИС')}</p>
+      </div>
+      <div class="facts facts-side">
+        <div><span>НМЦК</span><b>${rub(t.nmck || p.cost)}</b></div>
+        <div><span>В том числе деньги жителей</span><b>${rub(raised)}</b></div>
+        <div><span>Заявок подано</span><b>${bids.length}</b></div>
+      </div>
+    </div>`;
+
+  const stMap = { winner: ['chip-green', 'победитель'], submitted: ['chip-blue', 'заявка подана'], rejected: ['chip-red', 'отклонена'] };
+
+  document.getElementById('main').innerHTML = `
+    <div class="card">
+      <div class="card-h"><h3>Условия закупки</h3>
+        <a class="btn btn-o btn-s" href="project.html?id=${p.id}">Карточка проекта</a></div>
+      <div class="facts">
+        <div><span>Объект</span><b>${esc(p.title)}</b></div>
+        <div><span>Адрес</span><b>${esc(p.addr)}</b></div>
+        <div><span>НМЦК</span><b>${rub(t.nmck || p.cost)}</b></div>
+        <div><span>Срок выполнения</span><b>${esc(t.term || '—')}</b></div>
+        <div><span>Приём заявок до</span><b>${esc(t.bidsUntil || '—')}</b></div>
+        <div><span>Дата аукциона</span><b>${esc(t.auctionAt || '—')}</b></div>
+      </div>
+      <div class="note note-b mt20">Проект оплачивается из бюджета города с участием жителей:
+        ${rub(raised)} внесли ${DB.donors(p.id)} ${plural(DB.donors(p.id), 'человек', 'человека', 'человек')}.
+        Ход работ и отчёты подрядчика будут видны им в карточке проекта.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h3>Участники торгов</h3>
+        <span class="chip chip-grey">${bids.length} ${plural(bids.length, 'заявка', 'заявки', 'заявок')}</span></div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Участник</th><th class="r">Цена, ₽</th><th class="r">Снижение</th><th>Срок</th><th>Опыт</th><th>Статус</th>${Session.is('admin') && open ? '<th></th>' : ''}</tr></thead>
+        <tbody>${bids.map(b => {
+          const s = stMap[b.status] || stMap.submitted;
+          const dis = t.nmck ? Math.round((1 - b.price / t.nmck) * 100) : b.discount;
+          return `<tr${b.contractorId === me ? ' style="background:var(--blue-soft)"' : ''}>
+            <td><b>${esc(b.contractorName)}</b>${b.contractorId === me ? ' <span class="chip chip-blue">вы</span>' : ''}
+              <br><small class="muted">ИНН ${esc(b.inn)} · заявка ${dateRU(b.date)}</small></td>
+            <td class="r strong">${fmt(b.price)}</td>
+            <td class="r">${dis > 0 ? '−' + dis + '%' : '—'}</td>
+            <td>${esc(b.term)}</td>
+            <td><small>${esc(b.exp)}<br><span class="muted">исполнено ${b.done}, срывов ${b.fail}</span></small></td>
+            <td><span class="chip ${s[0]}">${s[1]}</span>${b.why ? '<br><small class="muted">' + esc(b.why) + '</small>' : ''}</td>
+            ${Session.is('admin') && open ? `<td class="r"><button class="btn btn-g btn-s" data-win="${b.id}">Выбрать</button></td>` : ''}
+          </tr>`;
+        }).join('') || `<tr><td colspan="7" class="muted">Заявок пока нет — подрядчики могут подать их на этой странице</td></tr>`}</tbody>
+      </table></div>
+      ${win ? `<div class="note note-g mt20"><b>Победитель: ${esc(win.contractorName)}.</b>
+        Цена контракта ${rub(win.price)}${t.nmck ? ', экономия ' + rub(t.nmck - win.price) : ''}.
+        ${p.contract ? 'Контракт ' + esc(p.contract.number) + ' — работы ведутся в карточке проекта.' : ''}</div>` : ''}
+    </div>`;
+
+  /* Боковая панель */
+  let side = '';
+  if (Session.is('contractor')) {
+    side = `<div class="card">
+      <h4 class="mb14">Участие в торгах</h4>
+      ${myBid
+        ? `<div class="note ${myBid.status === 'winner' ? 'note-g' : 'note-b'}">
+            <b>${myBid.status === 'winner' ? 'Вы победили в торгах.' : 'Ваша заявка подана.'}</b>
+            Цена ${rub(myBid.price)}, срок ${esc(myBid.term)}.
+            ${myBid.status === 'winner' ? 'Контракт заключён — отчёты по этапам подаются в карточке проекта.' : 'Ожидается решение комиссии.'}</div>
+           ${myBid.status === 'winner' ? `<a class="btn btn-p btn-full mt14" href="project.html?id=${p.id}">Перейти к работам</a>` : ''}`
+        : (open
+          ? `<p class="muted mb14">Ознакомьтесь с условиями и подайте ценовое предложение.</p>
+             <button class="btn btn-g btn-full" id="bid">Принять участие</button>`
+          : '<div class="note note-a">Приём заявок закрыт.</div>')}
+    </div>`;
+  } else if (Session.is('admin')) {
+    side = `<div class="card">
+      <h4 class="mb14">Работа комиссии</h4>
+      <p class="muted mb14">Выберите победителя в таблице — платформа зафиксирует протокол,
+        создаст контракт и откроет подрядчику доступ к графику работ.</p>
+      <div class="facts">
+        <div><span>Заявок</span><b>${bids.length}</b></div>
+        <div><span>Лучшая цена</span><b>${bids.length ? rub(bids[0].price) : '—'}</b></div>
+        <div><span>Экономия к НМЦК</span><b>${bids.length && t.nmck ? rub(t.nmck - bids[0].price) : '—'}</b></div>
+      </div>
+    </div>`;
+  } else {
+    side = `<div class="card">
+      <h4 class="mb14">Что видит житель</h4>
+      <p class="muted">Кто подал заявку, с какой ценой и опытом, кто победил и во сколько
+        в итоге обошёлся объект. Раньше эти данные приходилось искать в реестре закупок.</p>
+      <a class="btn btn-o btn-full mt14" href="project.html?id=${p.id}">Вернуться к проекту</a>
+    </div>`;
+  }
+
+  side += `<div class="card"><h4 class="mb14">Другие торги</h4>
+    <a class="btn btn-o btn-full" href="tender.html">Все закупки платформы</a></div>`;
+
+  document.getElementById('side').innerHTML = `<div class="sticky">${side}</div>`;
+
+  /* Действия */
+  const bidBtn = document.getElementById('bid');
+  if (bidBtn) bidBtn.addEventListener('click', () => {
+    document.getElementById('bidHead').textContent = p.title + ' · НМЦК ' + rub(t.nmck || p.cost);
+    document.getElementById('bidPrice').value = Math.round((t.nmck || p.cost) * 0.93);
+    document.getElementById('bidTerm').value = '45 календарных дней';
+    openModal('mBid');
+  });
+
+  document.querySelectorAll('[data-win]').forEach(b => b.addEventListener('click', () => {
+    const w = DB.chooseWinner(p.id, b.dataset.win);
+    reload();
+    toast('Победитель: ' + w.contractorName + ' · контракт заключён');
+  }));
+}
+
+document.getElementById('bidGo').addEventListener('click', () => {
+  const t = p.tender || {};
+  const price = parseInt(document.getElementById('bidPrice').value || '0', 10);
+  const term = document.getElementById('bidTerm').value.trim();
+  const nmck = t.nmck || p.cost;
+  if (!price || price <= 0) { toast('Укажите цену'); return; }
+  if (price > nmck) { toast('Цена не может быть выше НМЦК ' + rub(nmck)); return; }
+  const res = DB.addBid(p.id, Session.userId, price, term);
+  closeModal('mBid');
+  reload();
+  toast(res.added ? 'Заявка подана — вы участвуете в торгах' : 'Вы уже подали заявку по этому объекту');
+});
+
+function draw() { if (p) drawOne(); else drawList(); }
+draw();
+</script>
+</body>
+</html>

@@ -412,6 +412,33 @@ textarea.inp{min-height:110px;resize:vertical}
 .plog-note{font-size:12px;color:#7F92B8;line-height:1.5;max-width:760px}
 .plog-note a{color:#A9BADB;text-decoration:underline}
 
+/* ---------- Хроника проекта ---------- */
+.tl{position:relative;padding-left:8px}
+.tl-item{display:flex;gap:14px;padding-bottom:18px;position:relative}
+.tl-item::before{content:"";position:absolute;left:15px;top:34px;bottom:0;width:2px;background:var(--line)}
+.tl-item:last-child::before{display:none}
+.tl-item:last-child{padding-bottom:0}
+.tl-dot{width:32px;height:32px;border-radius:50%;background:var(--bg-2);border:2px solid #fff;
+  box-shadow:0 0 0 1px var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;flex:none;z-index:1}
+.tl-body{min-width:0;flex:1}
+.tl-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+.tl-head b{font-size:15px}
+.tl-head span{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.tl-body p{font-size:14px;color:var(--muted);margin:4px 0 2px;line-height:1.5}
+
+/* ---------- Карточка отчёта / замечания ---------- */
+.rep{border:1px solid var(--line);border-radius:16px;padding:18px;background:#fff}
+.rep+.rep{margin-top:14px}
+.rep .facts div{padding:10px 14px;font-size:13.5px}
+.shot{position:relative}
+.shot-tag{position:absolute;top:8px;left:8px;background:rgba(10,24,54,.72);color:#fff;
+  font-size:10px;font-weight:900;letter-spacing:.08em;padding:3px 8px;border-radius:6px}
+
+/* ---------- Загрузка файлов (демо) ---------- */
+.up{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px;border:1.5px dashed var(--line);border-radius:12px}
+.inp-s{padding:8px 10px;font-size:13.5px;border-radius:9px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
+
 /* ---------- Демо-переключатель ролей ---------- */
 .demo-bar{position:fixed;left:18px;bottom:18px;z-index:120;background:#fff;border:1px solid var(--line);
   box-shadow:var(--shadow);border-radius:999px;padding:7px 10px 7px 16px;display:flex;align-items:center;gap:8px}

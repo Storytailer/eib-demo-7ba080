@@ -20,45 +20,16 @@
 <div id="ftr"></div>
 
 <script src="assets/js/data.js"></script>
+<script src="assets/js/db.js"></script>
 <script src="assets/js/app.js"></script>
 <script>
 mount('cabinet');
 
-const r = State.role();
-const acc = State.account();
-const all = projects();
+const acc = Session.user;
 const head = document.getElementById('head');
 const body = document.getElementById('body');
 
-/* ---------- Гость ---------- */
-if (!acc) {
-  head.innerHTML = `<div class="crumbs"><a href="index.html">Главная</a> → Личный кабинет</div>
-    <h2>Войдите, чтобы открыть кабинет</h2>
-    <p class="lead mt8">Кабинет собирает то, что касается лично вас: ваши инициативы и взносы,
-      очередь задач администрации или контракты подрядчика.</p>`;
-  body.innerHTML = `<div class="card" style="text-align:center;padding:60px 26px">
-      <h3 class="mb14">Вход через Госуслуги или ведомственную учётную запись</h3>
-      <p class="lead mb28">Демо-режим: пароль не нужен, роль можно переключать сколько угодно раз.</p>
-      <a class="btn btn-p btn-l" href="login.html">Выбрать роль и войти</a>
-    </div>`;
-} else {
-
-/* ---------- Общая шапка кабинета ---------- */
-head.innerHTML = `<div class="crumbs"><a href="index.html">Главная</a> → Личный кабинет</div>
-  <div class="between">
-    <div>
-      <span class="eyebrow">${ROLE_LABEL[r]} · ${CITY.name}</span>
-      <h2 class="mt8">${acc.name}</h2>
-      <p class="lead mt8">${acc.org} · ${acc.esia}</p>
-    </div>
-    <div class="flexr">
-      ${r === 'citizen' ? '<a class="btn btn-p" href="submit.html">Подать инициативу</a>' : ''}
-      <a class="btn btn-o" href="projects.html">Все проекты города</a>
-    </div>
-  </div>`;
-
-/* ---------- Помощники ---------- */
-const kpi = (arr) => `<div class="grid g4 mb28">${arr.map(k =>
+const kpi = arr => `<div class="grid g4 mb28">${arr.map(k =>
   `<div class="kpi ${k[2] || 'b'}"><b>${k[0]}</b><span>${k[1]}</span></div>`).join('')}</div>`;
 
 const task = (icon, cls, title, sub, btn, href) => `<div class="doc">
@@ -66,123 +37,269 @@ const task = (icon, cls, title, sub, btn, href) => `<div class="doc">
   <div class="tx"><b>${title}</b><small>${sub}</small></div>
   <div class="act"><a class="btn btn-o btn-s" href="${href}">${btn}</a></div></div>`;
 
-const row = p => `<tr>
-  <td><b><a href="project.html?id=${p.id}">${p.title}</a></b><br><small class="muted">${p.district} · ${p.cat}</small></td>
-  <td><span class="chip ${stage(p.stage).chip}">${stage(p.stage).name}</span></td>
-  <td class="r">${rub(p.cost)}</td>`;
+const plink = p => `<a href="project.html?id=${p.id}">${esc(p.title)}</a>`;
+const chip = p => `<span class="chip ${statusOf(p).chip}">${statusOf(p).n}</span>`;
 
-/* ---------- ЖИТЕЛЬ ---------- */
-if (r === 'citizen') {
-  const mine = all.filter(p => ['skver-uchenyh', 'lestnica-belkino'].includes(p.id));
-  const donations = [
-    { id: 'skver-uchenyh', d: '12.09.2026', sum: 2000 },
-    { id: 'ploschadka-aksenova', d: '05.08.2026', sum: 1500 },
-    { id: 'shkola7-sport', d: '14.04.2026', sum: 1000 }
+/* ---------------- Гость ---------------- */
+if (!acc) {
+  head.innerHTML = `<div class="crumbs"><a href="index.html">Главная</a> → Личный кабинет</div>
+    <h2>Войдите, чтобы открыть кабинет</h2>
+    <p class="lead mt8">Кабинет собирает то, что касается лично вас: ваши проекты и черновики,
+      подписи и взносы, история просмотров — или очередь заявок администрации и контракты подрядчика.</p>`;
+  body.innerHTML = `<div class="card" style="text-align:center;padding:60px 26px">
+      <h3 class="mb14">Вход через Госуслуги или ведомственную учётную запись</h3>
+      <p class="lead mb28">Демо-режим: пароль не нужен, роль можно переключать сколько угодно раз.</p>
+      <a class="btn btn-p btn-l" href="login.html">Выбрать роль и войти</a>
+    </div>`;
+} else {
+
+head.innerHTML = `<div class="crumbs"><a href="index.html">Главная</a> → Личный кабинет</div>
+  <div class="between">
+    <div>
+      <span class="eyebrow">${ROLE_LABEL[acc.role]} · ${CITY.name}</span>
+      <h2 class="mt8">${esc(acc.name)}</h2>
+      <p class="lead mt8">${esc(acc.org)}${acc.esia ? ' · ' + esc(acc.esia) : ''}</p>
+    </div>
+    <div class="flexr">
+      ${acc.role === 'citizen' ? '<a class="btn btn-p" href="create.html">Предложить проект</a>' : ''}
+      ${acc.role === 'contractor' ? '<a class="btn btn-p" href="tender.html">Открытые торги</a>' : ''}
+      <a class="btn btn-o" href="projects.html">Все проекты города</a>
+    </div>
+  </div>`;
+
+/* ================= ЖИТЕЛЬ ================= */
+if (acc.role === 'citizen') {
+  const mine = DB.projects({ owner: acc.id });
+  const myTx = DB.txByUser(acc.id);
+  const paid = myTx.filter(t => t.status === 'confirmed').reduce((s, t) => s + t.amount, 0);
+  const refunded = myTx.filter(t => t.status === 'refunded').reduce((s, t) => s + t.amount, 0);
+  const mySigns = DB.signaturesByUser(acc.id);
+  const signedProjects = mySigns.map(s => DB.project(s.projectId)).filter(Boolean);
+  const paidProjects = [...new Set(myTx.filter(t => t.status === 'confirmed').map(t => t.projectId))]
+    .map(pid => DB.project(pid)).filter(Boolean);
+  const supported = [...new Set(signedProjects.concat(paidProjects))];
+  const views = DB.viewsByUser(acc.id);
+  const myIssues = DB.all('issues').filter(i => i.userId === acc.id);
+
+  /* задачи */
+  const tasks = [];
+  mine.filter(p => p.status === 'draft').forEach(p => tasks.push(
+    task('✎', 'wait', 'Черновик не отправлен', esc(p.title) + ' — продолжите заполнение и отправьте заявку', 'Продолжить', 'create.html?id=' + p.id)));
+  mine.filter(p => p.status === 'rework').forEach(p => tasks.push(
+    task('↩', 'wait', 'Заявка возвращена на доработку', esc(p.title) + ' — ' + esc(p.adminComment || 'см. комментарий администрации'), 'Доработать', 'create.html?id=' + p.id)));
+  DB.projects({ public: true }).filter(p => p.status === 'signing' && !DB.hasSigned(p.id, acc.id)).slice(0, 2).forEach(p => tasks.push(
+    task('✍️', '', 'Идёт сбор подписей', esc(p.title) + ' — ' + DB.signatures(p.id).length + ' из ' + p.signNeed, 'Подписать', 'project.html?id=' + p.id)));
+  DB.projects({ public: true }).filter(p => p.status === 'collecting').slice(0, 2).forEach(p => tasks.push(
+    task('💳', '', 'Идёт сбор средств', esc(p.title) + ' — осталось ' + rub(DB.leftToRaise(p.id)), 'Поддержать', 'project.html?id=' + p.id)));
+
+  const groups = [
+    ['Черновики', mine.filter(p => p.status === 'draft')],
+    ['Отправленные заявки', mine.filter(p => ['submitted', 'review', 'rework', 'approved', 'rejected'].includes(p.status))],
+    ['Опубликованные проекты', mine.filter(p => ['signing', 'collecting', 'goal', 'documents', 'procurement', 'works', 'reporting'].includes(p.status))],
+    ['Завершённые проекты', mine.filter(p => ['done', 'refunded'].includes(p.status))]
   ];
-  const sum = donations.reduce((s, x) => s + x.sum, 0);
 
   body.innerHTML = kpi([
-    [mine.length, plural(mine.length, 'ваша инициатива', 'ваши инициативы', 'ваших инициатив') + ' в работе', 'b'],
-    [rub(sum), 'вы вложили в проекты города', 'g'],
-    ['5', 'заявок вы подписали через ЕСИА', 'v'],
-    ['1', 'проект с вашим взносом уже открыт', 'a']
+    [mine.length, plural(mine.length, 'ваш проект', 'ваших проекта', 'ваших проектов') + ' на платформе', 'b'],
+    [rub(paid), 'вы вложили в проекты города', 'g'],
+    [supported.length, plural(supported.length, 'поддержанный проект', 'поддержанных проекта', 'поддержанных проектов'), 'v'],
+    [mySigns.length, plural(mySigns.length, 'подпись', 'подписи', 'подписей') + ' через ЕСИА', 'a']
   ]) + `
   <div class="grid g2" style="align-items:start">
     <div>
       <div class="card">
-        <div class="card-h"><h3>Требуют вашего действия</h3><span class="chip chip-amber">3 задачи</span></div>
-        ${task('✍️', 'wait', 'Не хватает 2 подписей', 'Лестница к парку «Белкино» — 8 из 10 подписей группы', 'Подписать', 'project.html?id=lestnica-belkino')}
-        ${task('💳', '', 'До конца сбора 19 дней', 'Сквер у Дома учёных — осталось собрать ' + rub(left(all.find(p => p.id === 'skver-uchenyh'))), 'Поддержать', 'project.html?id=skver-uchenyh')}
-        ${task('📸', 'ok', 'Новый фотоотчёт подрядчика', 'Воркаут-площадка в Заовражье — выполнение 64%', 'Смотреть', 'project.html?id=vorkaut-zaovrazhye')}
+        <div class="card-h"><h3>Требуют вашего действия</h3><span class="chip chip-amber">${tasks.length}</span></div>
+        ${tasks.join('') || '<p class="muted">Всё в порядке: незавершённых действий нет.</p>'}
       </div>
+
       <div class="card">
-        <div class="card-h"><h3>Мои инициативы</h3><span class="chip chip-grey">${mine.length}</span></div>
-        <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Проект</th><th>Этап</th><th class="r">Смета</th><th class="r">Готовность</th></tr></thead>
-          <tbody>${mine.map(p => row(p) + `<td class="r" style="min-width:120px">
-            <div class="bar ${pct(p) >= 100 ? 'ok' : 'warn'}"><i style="width:${p.stage === 'idea' ? Math.round(p.signatures.count / p.signatures.need * 100) : pct(p)}%"></i></div>
-            <small class="muted">${p.stage === 'idea' ? p.signatures.count + ' из ' + p.signatures.need + ' подписей' : pct(p) + '% сбора'}</small></td></tr>`).join('')}</tbody>
-        </table></div>
+        <div class="card-h"><h3>Мои проекты</h3>
+          <a class="btn btn-p btn-s" href="create.html">+ Новый проект</a></div>
+        ${groups.map(([name, list]) => `
+          <h4 class="mt20 mb8">${name} <span class="chip chip-grey">${list.length}</span></h4>
+          ${list.length ? `<div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>Проект</th><th>Статус</th><th class="r">Смета</th><th></th></tr></thead>
+            <tbody>${list.map(p => `<tr>
+              <td><b>${plink(p)}</b><br><small class="muted">${esc(p.district)} · создан ${dateRU(p.createdAt)}</small></td>
+              <td>${chip(p)}</td>
+              <td class="r">${rub(p.cost)}</td>
+              <td class="r"><a class="btn btn-o btn-s" href="${p.status === 'draft' || p.status === 'rework' ? 'create.html?id=' + p.id : 'project.html?id=' + p.id}">
+                ${p.status === 'draft' || p.status === 'rework' ? 'Редактировать' : 'Открыть'}</a></td>
+            </tr>`).join('')}</tbody></table></div>`
+            : '<p class="muted" style="font-size:14px">Пусто.</p>'}
+        `).join('')}
       </div>
-      <div class="card">
-        <div class="card-h"><h3>Мои взносы и документы</h3><span class="chip chip-green">${rub(sum)}</span></div>
-        <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Проект</th><th>Дата</th><th class="r">Сумма</th><th>Документы</th></tr></thead>
-          <tbody>${donations.map(d => {
-            const p = all.find(x => x.id === d.id);
-            return `<tr><td><b><a href="project.html?id=${p.id}">${p.title}</a></b></td><td>${d.d}</td>
-              <td class="r strong">${rub(d.sum)}</td>
-              <td><button class="btn btn-o btn-s" onclick="toast('Демо: открылся бы договор пожертвования и чек')">Договор и чек</button></td></tr>`;
-          }).join('')}</tbody>
+
+      <div class="card" id="contribution">
+        <div class="card-h"><h3>Ваш вклад</h3><span class="chip chip-green">${rub(paid)}</span></div>
+        <p class="muted mb20">Раздел собирается из реальных записей: подписи, транзакции и проекты,
+          в которых вы участвовали. Данные обновляются сразу после действия.</p>
+
+        <h4 class="mb8">Поддержанные проекты</h4>
+        <div class="tbl-wrap mb20"><table class="tbl">
+          <thead><tr><th>Проект</th><th>Ваше участие</th><th>Статус проекта</th><th class="r">Ваш взнос</th></tr></thead>
+          <tbody>${supported.map(p => {
+            const signed = DB.hasSigned(p.id, acc.id);
+            const sum = myTx.filter(t => t.projectId === p.id && t.status === 'confirmed').reduce((s, t) => s + t.amount, 0);
+            return `<tr>
+              <td><b>${plink(p)}</b><br><small class="muted">${esc(p.district)}</small></td>
+              <td>${signed ? '<span class="chip chip-violet">подпись</span> ' : ''}${sum ? '<span class="chip chip-green">взнос</span>' : ''}</td>
+              <td>${chip(p)}</td>
+              <td class="r strong">${sum ? rub(sum) : '—'}</td></tr>`;
+          }).join('') || '<tr><td colspan="4" class="muted">Пока нет поддержанных проектов</td></tr>'}</tbody>
         </table></div>
-        <div class="note note-g mt20">По проекту «Спортивная площадка у школы № 7» вам вернули излишек взноса
-          после экономии на торгах — возврат пришёл на карту, с которой был платёж (ст. 70 ФЗ-33).</div>
+
+        <h4 class="mb8">Финансовый вклад</h4>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Транзакция</th><th>Проект</th><th>Дата</th><th class="r">Сумма</th><th>Статус</th><th>Документы</th></tr></thead>
+          <tbody>${myTx.map(t => {
+            const pr = DB.project(t.projectId);
+            const s = TX_STATUS[t.status];
+            return `<tr><td><code>${esc(t.no)}</code></td>
+              <td>${pr ? plink(pr) : '—'}</td>
+              <td>${dateTimeRU(t.date)}</td>
+              <td class="r strong">${rub(t.amount)}</td>
+              <td><span class="chip ${s[0]}">${s[1]}</span></td>
+              <td><button class="btn btn-o btn-s" onclick="toast('Демо: открылся бы договор пожертвования и кассовый чек')">Договор и чек</button></td>
+            </tr>`;
+          }).join('') || '<tr><td colspan="6" class="muted">Взносов пока нет</td></tr>'}</tbody>
+        </table></div>
+        <div class="facts mt20">
+          <div><span>Всего внесено (подтверждено)</span><b>${rub(paid)}</b></div>
+          <div><span>Возвращено по нереализованным проектам</span><b>${rub(refunded)}</b></div>
+          <div><span>Транзакций всего</span><b>${myTx.length}</b></div>
+          <div><span>Подписей поставлено</span><b>${mySigns.length}</b></div>
+        </div>
       </div>
+
+      ${myIssues.length ? `<div class="card">
+        <div class="card-h"><h3>Мои замечания по работам</h3><span class="chip chip-grey">${myIssues.length}</span></div>
+        ${myIssues.map(i => {
+          const pr = DB.project(i.projectId), s = ISSUE_STATUS[i.status];
+          return `<div class="doc"><span class="ic ${i.status === 'published' ? 'ok' : 'wait'}">⚠️</span>
+            <div class="tx"><b>${esc(i.text.slice(0, 80))}</b>
+              <small>${pr ? esc(pr.title) : ''} · ${dateRU(i.date)} · фото: ${(i.photos || []).length}</small></div>
+            <div class="act"><span class="chip ${s[0]}">${s[1]}</span></div></div>`;
+        }).join('')}
+      </div>` : ''}
     </div>
+
     <div>
       <div class="card">
-        <h3 class="mb14">Ваш вклад в город</h3>
-        <div class="facts">
-          <div><span>Проектов поддержано</span><b>3</b></div>
-          <div><span>Всего внесено</span><b>${rub(sum)}</b></div>
-          <div><span>Возвращено излишков</span><b>${rub(120)}</b></div>
-          <div><span>Подписей поставлено</span><b>5</b></div>
-        </div>
-        <a class="btn btn-p btn-full mt20" href="projects.html?f=collecting">Поддержать ещё один проект</a>
+        <h3 class="mb14">История просмотров</h3>
+        <p class="muted mb14" style="font-size:13.5px">Проекты, которые вы открывали. Удобно вернуться
+          к тому, что смотрели, и увидеть, как изменился статус.</p>
+        ${views.map(v => {
+          const p = DB.project(v.projectId);
+          if (!p) return '';
+          return `<div class="doc"><span class="ic">👁</span>
+            <div class="tx"><b>${plink(p)}</b><small>${statusOf(p).n} · просмотрен ${dateTimeRU(v.lastSeen)}</small></div>
+            <div class="act"><a class="btn btn-o btn-s" href="project.html?id=${p.id}">Открыть</a></div></div>`;
+        }).join('') || '<p class="muted">Вы ещё не открывали проекты.</p>'}
       </div>
       <div class="card">
-        <h3 class="mb14">Уведомления</h3>
-        <div class="doc"><span class="ic ok">✓</span><div class="tx"><b>Смета утверждена</b><small>02.09.2026 · Сквер у Дома учёных</small></div></div>
-        <div class="doc"><span class="ic">⚙️</span><div class="tx"><b>Сбор идёт: 73%</b><small>05.10.2026 · осталось 19 дней</small></div></div>
-        <div class="doc"><span class="ic wait">📨</span><div class="tx"><b>Пакет документов отправлен</b><small>30.09.2026 · Детская площадка на ул. Аксёнова</small></div></div>
+        <h3 class="mb14">Куда ещё вложиться</h3>
+        ${DB.projects({ public: true }).filter(p => p.status === 'collecting').map(p => `
+          <div class="doc"><span class="ic">💳</span>
+            <div class="tx"><b>${plink(p)}</b><small>осталось ${rub(DB.leftToRaise(p.id))} · ${DB.progress(p.id)}%</small></div>
+            <div class="act"><a class="btn btn-p btn-s" href="project.html?id=${p.id}">Поддержать</a></div></div>`).join('')
+          || '<p class="muted">Сейчас активных сборов нет.</p>'}
       </div>
     </div>
   </div>`;
 }
 
-/* ---------- АДМИНИСТРАЦИЯ ---------- */
-if (r === 'admin') {
-  const byStage = k => all.filter(p => p.stage === k);
-  const inCollect = byStage('collecting');
-  const raised = all.reduce((s, p) => s + p.raised, 0);
+/* ================= АДМИНИСТРАЦИЯ ================= */
+if (acc.role === 'admin') {
+  const all = DB.projects();
+  const inbox = all.filter(p => ['submitted', 'review', 'rework'].includes(p.status));
+  const collecting = all.filter(p => p.status === 'collecting');
+  const goal = all.filter(p => p.status === 'goal');
+  const docs = all.filter(p => p.status === 'documents');
+  const proc = all.filter(p => p.status === 'procurement');
+  const works = all.filter(p => ['works', 'reporting'].includes(p.status));
+  const modIssues = DB.issuesByStatus('moderation');
+  const sentReports = DB.all('reports').filter(r => r.status === 'sent');
+  const raised = all.reduce((s, p) => s + DB.raised(p.id), 0);
 
   body.innerHTML = kpi([
-    [byStage('idea').length, plural(byStage('idea').length, 'заявка ждёт', 'заявки ждут', 'заявок ждут') + ' отбора комиссии', 'v'],
-    [inCollect.length, plural(inCollect.length, 'проект', 'проекта', 'проектов') + ' в сборе средств', 'b'],
-    [byStage('documents').length, plural(byStage('documents').length, 'пакет документов', 'пакета документов', 'пакетов документов') + ' на проверке', 'a'],
-    [byStage('works').length + byStage('contractor').length, plural(byStage('works').length + byStage('contractor').length, 'проект', 'проекта', 'проектов') + ' в закупке и работах', 'g']
+    [inbox.length, plural(inbox.length, 'заявка ждёт', 'заявки ждут', 'заявок ждут') + ' проверки', 'v'],
+    [collecting.length + goal.length, plural(collecting.length + goal.length, 'проект', 'проекта', 'проектов') + ' в сборе средств', 'b'],
+    [modIssues.length, plural(modIssues.length, 'замечание', 'замечания', 'замечаний') + ' на модерации', 'r'],
+    [sentReports.length, plural(sentReports.length, 'отчёт', 'отчёта', 'отчётов') + ' на приёмке', 'a']
   ]) + `
   <div class="grid g2" style="align-items:start">
     <div>
       <div class="card">
-        <div class="card-h"><h3>Очередь задач куратора</h3><span class="chip chip-amber">по срокам</span></div>
-        ${byStage('documents').map(p => task('📨', 'wait', 'Принять пакет документов', p.title + ' · ' + p.docsPack.incoming + ' · ' + p.docsPack.deadline, 'Открыть', 'project.html?id=' + p.id)).join('')}
-        ${byStage('contractor').map(p => task('📑', 'wait', 'Подписать протокол и контракт', p.title + ' · закупка № ' + p.tender.number, 'Открыть', 'project.html?id=' + p.id)).join('')}
-        ${byStage('works').map(p => task('🏗️', '', 'Принять акт КС-2 по этапу', p.title + ' · выполнение ' + p.works.progress + '% · сдача ' + p.works.finish, 'Открыть', 'project.html?id=' + p.id)).join('')}
-        ${byStage('idea').map(p => task('📝', '', 'Проверить смету и вынести на комиссию', p.title + ' · смета ' + rub(p.cost) + ' · подписей ' + p.signatures.count + '/' + p.signatures.need, 'Открыть', 'project.html?id=' + p.id)).join('')}
+        <div class="card-h"><h3>Очередь заявок</h3><span class="chip chip-amber">${inbox.length}</span></div>
+        <p class="muted mb20">Заявки жителей: проверка данных, формирование сметы и решение —
+          одобрить, вернуть на доработку или отклонить с обоснованием.</p>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Заявка</th><th>Автор</th><th>Категория и место</th><th class="r">Стоимость</th><th>Подана</th><th>Статус</th><th></th></tr></thead>
+          <tbody>${inbox.map(p => `<tr>
+            <td><b>${plink(p)}</b><br><small class="muted">${esc((p.idea || p.summary || '').slice(0, 60))}</small></td>
+            <td>${esc(p.ownerName)}</td>
+            <td>${esc(p.cat)}<br><small class="muted">${esc(p.district)}${p.addr ? ' · ' + esc(p.addr) : ''}</small></td>
+            <td class="r strong">${rub(DB.smetaTotal(p.id))}<br><small class="muted">${p.smetaApproved ? 'смета утверждена' : 'смета не утверждена'}</small></td>
+            <td>${dateRU(p.createdAt)}</td>
+            <td>${chip(p)}</td>
+            <td class="r"><a class="btn btn-d btn-s" href="project.html?id=${p.id}">Рассмотреть</a></td>
+          </tr>`).join('') || '<tr><td colspan="7" class="muted">Новых заявок нет</td></tr>'}</tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Модерация замечаний жителей</h3><span class="chip chip-red">${modIssues.length}</span></div>
+        ${modIssues.map(i => {
+          const pr = DB.project(i.projectId);
+          return `<div class="rep">
+            <div class="between mb8"><b>${esc(i.userName)}</b>
+              <span class="chip chip-amber">${dateTimeRU(i.date)}</span></div>
+            <p class="mb14">${esc(i.text)}</p>
+            <small class="muted">Проект: ${pr ? plink(pr) : '—'}</small>
+            <div class="mt14">${photoGrid(i.photos)}</div>
+            <div class="flexr mt14">
+              <button class="btn btn-g btn-s" data-pub="${i.id}">Опубликовать</button>
+              <button class="btn btn-o btn-s" data-rej="${i.id}">Отклонить</button>
+            </div>
+          </div>`;
+        }).join('') || '<p class="muted">Замечаний на модерации нет.</p>'}
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Отчёты подрядчиков на приёмке</h3><span class="chip chip-amber">${sentReports.length}</span></div>
+        ${sentReports.map(r => {
+          const pr = DB.project(r.projectId);
+          return task('🏗️', 'wait', esc(r.stage) + ' — ' + esc(r.text.slice(0, 60)),
+            (pr ? esc(pr.title) : '') + ' · работы ' + dateRU(r.workDate) + ', отчёт отправлен ' + dateTimeRU(r.sentAt) +
+            ' · фото: ' + (r.photos || []).length + ', документов: ' + (r.docs || []).length,
+            'Принять', 'project.html?id=' + r.projectId);
+        }).join('') || '<p class="muted">Новых отчётов нет.</p>'}
       </div>
 
       <div class="card">
         <div class="card-h"><h3>Контроль сбора средств</h3><span class="chip chip-blue">п. 8.2 · 40 рабочих дней</span></div>
         <div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Проект</th><th class="r">Цель</th><th class="r">Собрано</th><th class="r">Осталось</th><th>Срок</th></tr></thead>
-          <tbody>${inCollect.map(p => `<tr>
-            <td><b><a href="project.html?id=${p.id}">${p.title}</a></b><br>
-              <div class="bar ${pct(p) >= 100 ? 'ok' : 'warn'}" style="margin-top:6px;max-width:200px"><i style="width:${pct(p)}%"></i></div></td>
-            <td class="r">${rub(p.goal)}</td><td class="r strong">${rub(p.raised)}</td>
-            <td class="r" style="color:var(--red);font-weight:800">${rub(left(p))}</td>
-            <td>${p.deadline}<br><small class="muted">${p.daysLeft ? days(p.daysLeft) : ''}</small></td></tr>`).join('')}</tbody>
+          <tbody>${collecting.concat(goal).map(p => `<tr>
+            <td><b>${plink(p)}</b>
+              <div class="bar ${DB.progress(p.id) >= 100 ? 'ok' : 'warn'}" style="margin-top:6px;max-width:200px"><i style="width:${DB.progress(p.id)}%"></i></div></td>
+            <td class="r">${rub(p.goal)}</td>
+            <td class="r strong">${rub(DB.raised(p.id))}</td>
+            <td class="r" style="color:var(--red);font-weight:800">${rub(DB.leftToRaise(p.id))}</td>
+            <td>${esc(p.deadline)}<br><small class="muted">${p.daysLeft ? days(p.daysLeft) : ''}</small></td>
+          </tr>`).join('') || '<tr><td colspan="5" class="muted">Активных сборов нет</td></tr>'}</tbody>
         </table></div>
-        <div class="note note-a mt20"><b>Зачем это администрации.</b> Раньше о недоборе становилось известно
-          в последний день срока по договору — и проект приходилось расторгать. Здесь остаток и темп сбора
-          видны ежедневно, а платформа шлёт напоминания инициатору и жителям.</div>
       </div>
 
       <div class="card">
-        <div class="card-h"><h3>Реестр проектов 2026 года</h3><span class="chip chip-grey">${all.length}</span></div>
+        <div class="card-h"><h3>Реестр проектов</h3><span class="chip chip-grey">${all.length}</span></div>
         <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Проект</th><th>Этап</th><th class="r">Смета</th><th class="r">Доля жителей</th><th>Инициатор</th></tr></thead>
-          <tbody>${all.map(p => row(p) + `<td class="r">${rub(p.goal)}</td><td>${p.initiator.name}</td></tr>`).join('')}</tbody>
+          <thead><tr><th>Проект</th><th>Статус</th><th class="r">Смета</th><th class="r">Собрано</th><th>Инициатор</th></tr></thead>
+          <tbody>${all.map(p => `<tr>
+            <td><b>${plink(p)}</b><br><small class="muted">${esc(p.district)} · ${esc(p.cat)}</small></td>
+            <td>${chip(p)}</td><td class="r">${rub(p.cost)}</td>
+            <td class="r">${rub(DB.raised(p.id))}</td><td>${esc(p.ownerName)}</td></tr>`).join('')}</tbody>
         </table></div>
       </div>
     </div>
@@ -193,77 +310,110 @@ if (r === 'admin') {
         <div class="facts">
           <div><span>Проектов в реестре</span><b>${all.length}</b></div>
           <div><span>Собрано жителями</span><b>${rub(raised)}</b></div>
-          <div><span>Электронных подписей</span><b>${all.reduce((s, p) => s + p.signatures.count, 0)}</b></div>
-          <div><span>Плательщиков</span><b>${all.reduce((s, p) => s + p.donors, 0)}</b></div>
-          <div><span>Лимит одного проекта</span><b>${rub(CITY.limit)}</b></div>
+          <div><span>Подписей</span><b>${DB.all('signatures').length}</b></div>
+          <div><span>Транзакций</span><b>${DB.all('transactions').length}</b></div>
+          <div><span>Торгов открыто</span><b>${proc.length}</b></div>
+          <div><span>Объектов в работе</span><b>${works.length}</b></div>
         </div>
         <button class="btn btn-d btn-full mt20" onclick="toast('Демо: выгружен пакет XLSX для отчётности в Минфин области')">Выгрузить отчётность</button>
       </div>
+
       <div class="card">
-        <h3 class="mb14">Документы на подпись</h3>
-        <div class="doc"><span class="ic wait">📑</span><div class="tx"><b>Протокол рассмотрения заявок</b><small>Тротуар по ул. Курчатова</small></div></div>
-        <div class="doc"><span class="ic wait">🧾</span><div class="tx"><b>Акт КС-2 № 2</b><small>Воркаут-площадка в Заовражье</small></div></div>
-        <div class="doc"><span class="ic ok">✓</span><div class="tx"><b>Итоговый отчёт опубликован</b><small>Спортплощадка у школы № 7</small></div></div>
-      </div>
-      <div class="card">
-        <h3 class="mb14">Что уходит в область</h3>
-        <p class="muted" style="font-size:14px">Платформа собирает данные для отчёта в Минфин Калужской области:
-          число проектов, доля софинансирования жителей, сроки и итоговые отчёты — без ручного сведения таблиц.</p>
+        <h3 class="mb14">Следующие шаги</h3>
+        ${goal.map(p => task('📦', 'wait', 'Цель достигнута — сформировать пакет', esc(p.title), 'Открыть', 'project.html?id=' + p.id)).join('')}
+        ${docs.map(p => task('📨', 'wait', 'Принять пакет документов', esc(p.title) + (p.docsPack ? ' · ' + esc(p.docsPack.incoming) : ''), 'Открыть', 'project.html?id=' + p.id)).join('')}
+        ${proc.map(p => task('📑', '', 'Выбрать победителя торгов', esc(p.title) + ' · заявок: ' + DB.bids(p.id).length, 'К торгам', 'tender.html?id=' + p.id)).join('')}
+        ${works.map(p => task('🏗️', '', 'Контроль работ', esc(p.title) + ' · выполнено ' + DB.worksProgress(p.id) + '%', 'Открыть', 'project.html?id=' + p.id)).join('')}
+        ${(goal.length + docs.length + proc.length + works.length) === 0 ? '<p class="muted">Активных задач нет.</p>' : ''}
       </div>
     </div>
   </div>`;
+
+  document.querySelectorAll('[data-pub]').forEach(b => b.addEventListener('click', () => {
+    DB.moderateIssue(b.dataset.pub, 'published', 'Замечание передано подрядчику для устранения.');
+    toast('Замечание опубликовано'); setTimeout(() => location.reload(), 700);
+  }));
+  document.querySelectorAll('[data-rej]').forEach(b => b.addEventListener('click', () => {
+    DB.moderateIssue(b.dataset.rej, 'rejected', 'Замечание не относится к предмету контракта.');
+    toast('Замечание отклонено'); setTimeout(() => location.reload(), 700);
+  }));
 }
 
-/* ---------- ПОДРЯДЧИК ---------- */
-if (r === 'contractor') {
-  const me = 'ООО «СпортСтройМонтаж»';
-  const mine = all.filter(p => p.works && p.works.contractor === me);
-  const open = all.filter(p => p.tender && p.stage === 'contractor');
-  const active = mine.filter(p => p.stage === 'works');
-  const sum = mine.reduce((s, p) => s + p.works.sum, 0);
-  const issues = active.reduce((s, p) => s + p.works.issues.length, 0);
+/* ================= ПОДРЯДЧИК ================= */
+if (acc.role === 'contractor') {
+  const myBids = DB.bidsByContractor(acc.id);
+  const myProjects = DB.projects().filter(p => p.contract && p.contract.contractorId === acc.id);
+  const active = myProjects.filter(p => ['works', 'reporting'].includes(p.status));
+  const myReports = DB.reportsByContractor(acc.id);
+  const openTenders = DB.projects().filter(p => p.status === 'procurement');
+  const sum = myProjects.reduce((s, p) => s + p.contract.sum, 0);
+  const issues = active.reduce((s, p) => s + DB.issues(p.id, { published: true }).length, 0);
 
   body.innerHTML = kpi([
-    [mine.length, plural(mine.length, 'муниципальный контракт', 'муниципальных контракта', 'муниципальных контрактов') + ' на платформе', 'b'],
+    [myProjects.length, plural(myProjects.length, 'контракт', 'контракта', 'контрактов') + ' на платформе', 'b'],
     [rub(sum), 'общая цена контрактов', 'g'],
-    [active.length ? active[0].works.finish : '—', 'ближайшая сдача объекта', 'a'],
-    [issues, plural(issues, 'замечание', 'замечания', 'замечаний') + ' от жителей и инспекторов', 'r']
+    [myReports.length, plural(myReports.length, 'отчёт отправлен', 'отчёта отправлено', 'отчётов отправлено'), 'a'],
+    [issues, plural(issues, 'замечание', 'замечания', 'замечаний') + ' от жителей', 'r']
   ]) + `
   <div class="grid g2" style="align-items:start">
     <div>
       <div class="card">
-        <div class="card-h"><h3>Мои контракты</h3><span class="chip chip-grey">${mine.length}</span></div>
+        <div class="card-h"><h3>Мои контракты</h3><span class="chip chip-grey">${myProjects.length}</span></div>
         <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Объект</th><th>Контракт</th><th class="r">Цена</th><th class="r">Готовность</th><th>Сдача</th></tr></thead>
-          <tbody>${mine.map(p => `<tr>
-            <td><b><a href="project.html?id=${p.id}">${p.title}</a></b><br><small class="muted">${p.district}</small></td>
-            <td>${p.works.contract}</td>
-            <td class="r strong">${rub(p.works.sum)}</td>
-            <td class="r" style="min-width:120px"><div class="bar ${p.works.progress === 100 ? 'ok' : 'warn'}"><i style="width:${p.works.progress}%"></i></div>
-              <small class="muted">${p.works.progress}%</small></td>
-            <td>${p.works.finish}</td></tr>`).join('')}</tbody>
+          <thead><tr><th>Объект</th><th>Контракт</th><th class="r">Цена</th><th class="r">Готовность</th><th>Статус</th><th></th></tr></thead>
+          <tbody>${myProjects.map(p => `<tr>
+            <td><b>${plink(p)}</b><br><small class="muted">${esc(p.district)}</small></td>
+            <td>${esc(p.contract.number)}<br><small class="muted">оплачено ${rub(p.contract.paid)}</small></td>
+            <td class="r strong">${rub(p.contract.sum)}</td>
+            <td class="r" style="min-width:120px">
+              <div class="bar ${DB.worksProgress(p.id) === 100 ? 'ok' : 'warn'}"><i style="width:${DB.worksProgress(p.id)}%"></i></div>
+              <small class="muted">${DB.worksProgress(p.id)}%</small></td>
+            <td>${chip(p)}</td>
+            <td class="r"><a class="btn btn-o btn-s" href="project.html?id=${p.id}">Открыть</a></td>
+          </tr>`).join('') || '<tr><td colspan="6" class="muted">Контрактов пока нет — подайте заявку на торгах</td></tr>'}</tbody>
         </table></div>
       </div>
 
       ${active.map(p => `<div class="card">
-        <div class="card-h"><h3>Что нужно сделать: ${p.title}</h3><span class="chip chip-amber">${p.works.progress}%</span></div>
-        ${task('📸', 'wait', 'Опубликовать фотоотчёт по этапу', p.works.plan.find(x => x.st === 'now') ? p.works.plan.find(x => x.st === 'now').t : 'текущий этап', 'Открыть', 'project.html?id=' + p.id)}
-        ${task('✅', '', 'Закрыть выполненный этап графика', 'Платформа пересчитает готовность и уведомит куратора', 'Открыть', 'project.html?id=' + p.id)}
-        ${p.works.issues.map(i => task('⚠️', 'wait', 'Замечание: ' + i.t, i.d + ' · ' + i.who + ' · ' + i.st, 'Ответить', 'project.html?id=' + p.id)).join('')}
+        <div class="card-h"><h3>Что сделать: ${esc(p.title)}</h3>
+          <span class="chip chip-amber">${DB.worksProgress(p.id)}%</span></div>
+        ${task('📸', 'wait', 'Отправить отчёт по текущему этапу',
+          (p.plan_items.find(i => i.st === 'now') || { t: 'текущий этап' }).t +
+          ' · дата отправки фиксируется системой', 'Открыть', 'project.html?id=' + p.id)}
+        ${DB.issues(p.id, { published: true }).map(i => task('⚠️', 'wait', 'Замечание: ' + esc(i.text.slice(0, 60)),
+          dateRU(i.date) + ' · ' + esc(i.userName) + (i.adminComment ? ' · ' + esc(i.adminComment) : ''),
+          'Открыть', 'project.html?id=' + p.id)).join('')}
       </div>`).join('')}
 
       <div class="card">
-        <div class="card-h"><h3>Открытые закупки города</h3><span class="chip chip-blue">44-ФЗ</span></div>
-        ${open.length ? `<div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Объект</th><th>Извещение</th><th class="r">НМЦК</th><th>Заявки до</th><th></th></tr></thead>
-          <tbody>${open.map(p => `<tr>
-            <td><b><a href="project.html?id=${p.id}">${p.title}</a></b></td>
-            <td>${p.tender.number}</td><td class="r strong">${rub(p.tender.nmck)}</td><td>${p.tender.bidsUntil}</td>
-            <td class="r"><button class="btn btn-o btn-s" onclick="toast('Демо: переход в ЕИС для подачи заявки')">Подать заявку</button></td>
-          </tr>`).join('')}</tbody></table></div>`
-          : '<p class="muted">Открытых закупок по инициативным проектам сейчас нет.</p>'}
-        <div class="note note-b mt20">Заявки подаются в ЕИС по 44-ФЗ — платформа не подменяет торги.
-          Здесь подрядчик видит объекты, сроки и то, что жители уже вложили в них свои деньги.</div>
+        <div class="card-h"><h3>Мои отчёты</h3><span class="chip chip-grey">${myReports.length}</span></div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Объект</th><th>Этап</th><th>Дата работ</th><th>Отправлен</th><th class="r">Файлы</th><th>Статус</th></tr></thead>
+          <tbody>${myReports.slice(0, 12).map(r => {
+            const pr = DB.project(r.projectId);
+            const s = { sent: ['chip-blue', 'ждёт приёмки'], accepted: ['chip-green', 'принят'], returned: ['chip-red', 'возвращён'] }[r.status] || ['chip-grey', r.status];
+            return `<tr><td>${pr ? plink(pr) : '—'}</td><td>${esc(r.stage)}</td>
+              <td>${dateRU(r.workDate)}</td><td>${dateTimeRU(r.sentAt)}</td>
+              <td class="r">${(r.photos || []).length} фото · ${(r.docs || []).length} док.</td>
+              <td><span class="chip ${s[0]}">${s[1]}</span></td></tr>`;
+          }).join('') || '<tr><td colspan="6" class="muted">Отчётов пока нет</td></tr>'}</tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Открытые торги</h3><span class="chip chip-blue">44-ФЗ</span></div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Объект</th><th>Извещение</th><th class="r">НМЦК</th><th>Приём до</th><th>Моя заявка</th><th></th></tr></thead>
+          <tbody>${openTenders.map(p => {
+            const mine = myBids.find(b => b.projectId === p.id);
+            return `<tr><td><b>${esc(p.title)}</b><br><small class="muted">${esc(p.district)}</small></td>
+              <td><small>${esc(p.tender ? p.tender.number : '—')}</small></td>
+              <td class="r strong">${rub(p.tender ? p.tender.nmck : p.cost)}</td>
+              <td>${esc(p.tender ? p.tender.bidsUntil : '—')}</td>
+              <td>${mine ? '<span class="chip chip-green">подана · ' + rub(mine.price) + '</span>' : '<span class="chip chip-grey">не подана</span>'}</td>
+              <td class="r"><a class="btn btn-${mine ? 'o' : 'p'} btn-s" href="tender.html?id=${p.id}">${mine ? 'Открыть' : 'Принять участие'}</a></td></tr>`;
+          }).join('') || '<tr><td colspan="6" class="muted">Открытых торгов сейчас нет</td></tr>'}</tbody>
+        </table></div>
       </div>
     </div>
 
@@ -271,19 +421,20 @@ if (r === 'contractor') {
       <div class="card">
         <h3 class="mb14">Репутация на платформе</h3>
         <div class="facts">
-          <div><span>Исполнено контрактов</span><b>21</b></div>
-          <div><span>Срывов срока</span><b>0</b></div>
-          <div><span>Средняя оценка жителей</span><b>4,8 из 5</b></div>
-          <div><span>Замечаний устранено</span><b>12 из 12</b></div>
+          <div><span>Исполнено контрактов</span><b>${acc.done || 0}</b></div>
+          <div><span>Срывов срока</span><b>${acc.fail || 0}</b></div>
+          <div><span>Средняя оценка жителей</span><b>${String(acc.rating || 0).replace('.', ',')} из 5</b></div>
+          <div><span>Заявок на торгах</span><b>${myBids.length}</b></div>
+          <div><span>Побед</span><b>${myBids.filter(b => b.status === 'winner').length}</b></div>
         </div>
-        <div class="note note-g mt20">Репутация видна жителям в карточке закупки. Это ответ на вопрос
-          «кто будет делать наш проект» — не только цена, но и история работ.</div>
+        <div class="note note-g mt20">Репутация видна жителям в карточке торгов — это ответ
+          на вопрос «кто будет делать наш проект».</div>
       </div>
       <div class="card">
         <h3 class="mb14">Ближайшие сроки</h3>
-        <div class="doc"><span class="ic wait">📅</span><div class="tx"><b>07.10.2026 — укладка покрытия</b><small>Воркаут-площадка в Заовражье</small></div></div>
-        <div class="doc"><span class="ic">📅</span><div class="tx"><b>13.10.2026 — электромонтаж</b><small>Воркаут-площадка в Заовражье</small></div></div>
-        <div class="doc"><span class="ic ok">📅</span><div class="tx"><b>18.10.2026 — сдача объекта</b><small>Приёмка с общественными инспекторами</small></div></div>
+        ${active.map(p => `<div class="doc"><span class="ic wait">📅</span>
+          <div class="tx"><b>${esc(p.contract.finish)}</b><small>${esc(p.title)} · сдача объекта</small></div></div>`).join('')
+          || '<p class="muted">Активных объектов нет.</p>'}
       </div>
     </div>
   </div>`;
