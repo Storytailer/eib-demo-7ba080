@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Проекты города · ЭИБ Обнинск</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%2312275C'/%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M24 6 39 14.5v17L24 40 9 31.5v-17z' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28v6.5a2.4 2.4 0 0 0 2.4 2.4h13.2a2.4 2.4 0 0 0 2.4-2.4V28' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28h4M29 28h4' stroke='%23ffffff' stroke-width='2'/%3E%3Cg transform='rotate(-16 24 19)'%3E%3Crect x='20' y='11' width='8.4' height='16' rx='1.4' fill='%23ffffff'/%3E%3Cpath d='m21.9 19 2.1 2.2 4-5.4' stroke='%23E32C26' stroke-width='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="hdr"></div>
+
+<section class="pagehead">
+  <div class="wrap">
+    <div class="crumbs"><a href="index.html">Главная</a> → Проекты</div>
+    <div class="sec-head" style="margin-bottom:0">
+      <div>
+        <span class="eyebrow">Реестр инициативных проектов</span>
+        <h2>Проекты города Обнинска</h2>
+        <p class="lead">Фильтр по этапу показывает, что происходит с проектом прямо сейчас:
+          идёт ли сбор и сколько осталось, ушли ли документы, кто ведёт работы.</p>
+      </div>
+      <a class="btn btn-p" href="submit.html">Подать инициативу</a>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="grid g4 mb28" id="kpis"></div>
+    <div class="filters" id="filters"></div>
+    <div class="grid g3" id="list"></div>
+    <p class="lead mt28" id="empty" style="display:none">На этом этапе сейчас нет проектов.</p>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+mount('projects');
+document.querySelector('.eyebrow').textContent = 'Реестр инициативных проектов · ' + CITY.year + ' год';
+
+const all = projects();
+const totalRaised = all.reduce((s, p) => s + p.raised, 0);
+const totalCost = all.reduce((s, p) => s + p.cost, 0);
+const donors = all.reduce((s, p) => s + p.donors, 0);
+const signs = all.reduce((s, p) => s + p.signatures.count, 0);
+
+document.getElementById('kpis').innerHTML = `
+  <div class="kpi b"><b>${all.length}</b><span>проектов в реестре 2026 года</span></div>
+  <div class="kpi g"><b>${rub(totalRaised)}</b><span>внесли жители онлайн</span></div>
+  <div class="kpi a"><b>${rub(totalCost)}</b><span>общая стоимость проектов</span></div>
+  <div class="kpi v"><b>${donors}</b><span>плательщиков и ${signs} электронных подписей</span></div>`;
+
+const filters = [{ key: 'all', name: 'Все проекты' }].concat(STAGES.map(s => ({ key: s.key, name: s.name })));
+let active = param('f') || 'all';
+
+function draw() {
+  document.getElementById('filters').innerHTML = filters.map(f => {
+    const n = f.key === 'all' ? all.length : all.filter(p => p.stage === f.key).length;
+    return `<button data-k="${f.key}" class="${f.key === active ? 'on' : ''}">${f.name} <span class="muted">${n}</span></button>`;
+  }).join('');
+
+  const list = active === 'all' ? all : all.filter(p => p.stage === active);
+  document.getElementById('list').innerHTML = list.map(projectCard).join('');
+  document.getElementById('empty').style.display = list.length ? 'none' : 'block';
+
+  document.querySelectorAll('#filters button').forEach(b => b.addEventListener('click', () => {
+    active = b.dataset.k;
+    history.replaceState(null, '', active === 'all' ? 'projects.html' : 'projects.html?f=' + active);
+    draw();
+  }));
+}
+draw();
+</script>
+</body>
+</html>

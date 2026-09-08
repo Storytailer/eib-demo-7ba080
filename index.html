@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ЭИБ · Инициативное бюджетирование города Обнинска</title>
+<meta name="description" content="Цифровая платформа инициативного бюджетирования: жители предлагают проекты, собирают софинансирование онлайн и видят каждый этап — от документов до отчёта подрядчика.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%2312275C'/%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M24 6 39 14.5v17L24 40 9 31.5v-17z' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28v6.5a2.4 2.4 0 0 0 2.4 2.4h13.2a2.4 2.4 0 0 0 2.4-2.4V28' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28h4M29 28h4' stroke='%23ffffff' stroke-width='2'/%3E%3Cg transform='rotate(-16 24 19)'%3E%3Crect x='20' y='11' width='8.4' height='16' rx='1.4' fill='%23ffffff'/%3E%3Cpath d='m21.9 19 2.1 2.2 4-5.4' stroke='%23E32C26' stroke-width='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="hdr"></div>
+
+<!-- ГЕРОЙ -->
+<section class="hero">
+  <!-- Панорама города: стилизованная графика.
+       Чтобы поставить реальное фото Обнинска — положите файл assets/covers/hero.jpg
+       и раскройте строку ниже (фото ляжет под текст с затемнением):
+  <img class="hero-photo" src="assets/covers/hero.jpg" alt=""> -->
+  <svg class="hero-city" viewBox="0 0 1440 260" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <g fill="rgba(255,255,255,.06)">
+      <rect x="40" y="120" width="120" height="140" rx="6"/>
+      <rect x="180" y="80" width="90" height="180" rx="6"/>
+      <rect x="290" y="150" width="150" height="110" rx="6"/>
+      <rect x="1010" y="110" width="130" height="150" rx="6"/>
+      <rect x="1160" y="70" width="90" height="190" rx="6"/>
+      <rect x="1270" y="140" width="140" height="120" rx="6"/>
+    </g>
+    <g fill="rgba(255,255,255,.10)">
+      <rect x="470" y="60" width="70" height="200" rx="6"/>
+      <rect x="560" y="130" width="110" height="130" rx="6"/>
+      <rect x="700" y="100" width="80" height="160" rx="6"/>
+      <rect x="800" y="160" width="160" height="100" rx="6"/>
+    </g>
+    <!-- метеомачта -->
+    <g stroke="rgba(255,255,255,.16)" stroke-width="3" fill="none">
+      <path d="M905 260V26M881 260 905 26l24 234"/>
+      <path d="M888 200h34M884 150h42M892 100h26"/>
+    </g>
+    <circle cx="905" cy="20" r="7" fill="rgba(227,44,38,.75)"/>
+    <g fill="rgba(255,255,255,.14)">
+      <circle cx="360" cy="222" r="26"/><rect x="355" y="222" width="10" height="38" rx="4"/>
+      <circle cx="1090" cy="212" r="30"/><rect x="1084" y="212" width="11" height="48" rx="5"/>
+      <circle cx="630" cy="230" r="20"/><rect x="626" y="230" width="8" height="30" rx="4"/>
+    </g>
+  </svg>
+  <div class="wrap">
+    <div class="hero-in">
+      <div>
+        <span class="eyebrow">Пилот · город Обнинск, Калужская область</span>
+        <h1>Город решает вместе:<br>от идеи жителя<br>до <em>готового объекта</em></h1>
+        <p class="lead">Платформа ведёт инициативный проект по всем этапам — заявка и электронные подписи,
+          сбор софинансирования, отправка документов в администрацию, выбор подрядчика,
+          отчёт о работах и итоговый отчёт перед жителями.</p>
+        <div class="hero-cta">
+          <a class="btn btn-p btn-l" href="projects.html">Проекты города</a>
+          <a class="btn btn-o btn-l" href="submit.html">Подать инициативу</a>
+        </div>
+        <div class="hero-note">🔐 Вход через Госуслуги (ЕСИА) · один житель — один голос · данные хранятся в РФ</div>
+      </div>
+
+      <!-- карточка «сейчас идёт сбор» -->
+      <div class="hero-card" id="heroCard"></div>
+    </div>
+
+    <div class="hero-stats">
+      <div><b class="c1" id="s1">—</b><span>идей подано жителями в 2026 году</span></div>
+      <div><b class="c2" id="s2">—</b><span>проектов ведётся на платформе</span></div>
+      <div><b class="c3" id="s3">—</b><span>вложили жители онлайн</span></div>
+      <div><b class="c4" id="s4">—</b><span>электронных подписей вместо бумажных</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ЭТАПЫ -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">Путь проекта</span>
+        <h2>Шесть этапов, которые видно всем</h2>
+        <p class="lead">Каждый этап заканчивается документом или фактом, а не обещанием. Житель в любой момент
+          знает, где проект и сколько ещё нужно собрать.</p>
+      </div>
+      <a class="btn btn-o" href="how.html">Подробно о механике</a>
+    </div>
+    <div class="grid g3" id="tiles"></div>
+  </div>
+</section>
+
+<!-- ИДЁТ СБОР -->
+<section class="sec sec-grey">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">Сейчас идёт сбор</span>
+        <h2>Поддержите проект своего района</h2>
+        <p class="lead">Взнос принимается картой или через СБП. Платформа сама формирует договор пожертвования
+          и чек, а деньги уходят в бюджет города — по п. 8.2 Положения № 05-22.</p>
+      </div>
+      <a class="btn btn-d" href="projects.html?f=collecting">Все проекты в сборе</a>
+    </div>
+    <div class="grid g3" id="collecting"></div>
+  </div>
+</section>
+
+<!-- ЧТО ДАЛЬШЕ -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">Проекты в работе</span>
+        <h2>Документы, подрядчик, стройка и отчёт</h2>
+        <p class="lead">Деньги собраны — дальше платформа показывает то, что раньше исчезало из виду:
+          какие документы ушли в администрацию, кто выиграл закупку и как идут работы.</p>
+      </div>
+      <a class="btn btn-o" href="projects.html">Смотреть все</a>
+    </div>
+    <div class="grid g3" id="pipeline"></div>
+  </div>
+</section>
+
+<!-- РОЛИ -->
+<section class="sec sec-grey">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">Личные кабинеты</span>
+        <h2>Три входа — один процесс</h2>
+        <p class="lead">Житель, администрация и подрядчик работают в одной системе и видят один и тот же
+          статус проекта. Никаких параллельных таблиц и бумажных писем.</p>
+      </div>
+    </div>
+    <div class="roles">
+      <div class="role">
+        <span class="ic" style="background:var(--blue-soft)">🧑‍💼</span>
+        <h3>Гражданин</h3>
+        <p>Подать идею, подписать заявку, внести свою долю и следить за стройкой.</p>
+        <ul>
+          <li>Подача инициативы и смета построчно</li>
+          <li>Электронная подпись группы через ЕСИА</li>
+          <li>Взнос картой или СБП, чек и договор</li>
+          <li>Уведомления о каждом этапе</li>
+        </ul>
+        <a class="btn btn-p btn-full" href="login.html?role=citizen">Войти как житель</a>
+      </div>
+      <div class="role">
+        <span class="ic" style="background:var(--violet-soft)">🏛️</span>
+        <h3>Администрация</h3>
+        <p>Принять пакет документов, утвердить смету, объявить закупку и опубликовать отчёт.</p>
+        <ul>
+          <li>Очередь заявок и проверка сметы</li>
+          <li>Приём электронного пакета документов</li>
+          <li>Публикация закупки и решения комиссии</li>
+          <li>Приёмка актов КС-2 и итоговый отчёт</li>
+        </ul>
+        <a class="btn btn-d btn-full" href="login.html?role=admin">Войти как администрация</a>
+      </div>
+      <div class="role">
+        <span class="ic" style="background:var(--amber-soft)">🏗️</span>
+        <h3>Подрядчик</h3>
+        <p>Загрузить график работ, публиковать фотоотчёт и сдавать этапы.</p>
+        <ul>
+          <li>Контракты и сроки по 44-ФЗ</li>
+          <li>Исполнительный график по этапам</li>
+          <li>Фотоотчёт с датами прямо жителям</li>
+          <li>Ответы на замечания общественного контроля</li>
+        </ul>
+        <a class="btn btn-o btn-full" href="login.html?role=contractor">Войти как подрядчик</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ЗАЧЕМ -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">Зачем платформа</span>
+        <h2>Что сегодня ломает инициативные проекты</h2>
+      </div>
+    </div>
+    <div class="grid g4">
+      <div class="kpi r"><b>704</b><span>подписи собраны в Обнинске вручную за один сезон 2024 года</span></div>
+      <div class="kpi a"><b>13,5%</b><span>идей по стране доходят до реализации — остальные гибнут на бумаге</span></div>
+      <div class="kpi b"><b>40</b><span>рабочих дней на договор и сбор средств по п. 8.2 — просрочка отменяет проект</span></div>
+      <div class="kpi g"><b>≈5%</b><span>фактическая доля жителей в софинансировании — её собирают наличными</span></div>
+    </div>
+    <div class="note note-b mt28">
+      <b>Что закрывает платформа.</b> Онлайн-приём взносов жителей, юридически значимый электронный пакет
+      документов и сквозной трекинг «идея → деньги → закупка → работы → отчёт».
+      Платформа не заменяет отбор и торги: закупка идёт по 44-ФЗ в ЕИС, а деньги жителей поступают
+      напрямую в бюджет города.
+    </div>
+  </div>
+</section>
+
+<!-- О ПРОЕКТЕ И ПАРТНЁРЫ -->
+<section class="sec sec-grey">
+  <div class="wrap">
+    <div class="card" style="display:flex;gap:28px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:32px">
+      <div style="max-width:640px">
+        <span class="eyebrow">Пилот и партнёры</span>
+        <h3 class="mt14 mb8">Кто участвует в пилоте и на каком этапе переговоры</h3>
+        <p class="muted">Администрация Обнинска, Минфин и Минстрой области, региональная администрация,
+          «Единая Россия» и «Молодая Гвардия» — статус взаимодействия по каждой организации
+          указан честно, без авансов.</p>
+      </div>
+      <a class="btn btn-d btn-l" href="about.html#partners">О проекте и партнёры</a>
+    </div>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+mount('home');
+
+/* Цифры пилота */
+document.getElementById('s1').textContent = CITY.stats.ideas;
+document.getElementById('s2').textContent = CITY.stats.projects;
+document.getElementById('s3').textContent = (CITY.stats.citizenMoney / 1000000).toFixed(2).replace('.', ',') + ' млн ₽';
+document.getElementById('s4').textContent = fmt(CITY.stats.signatures);
+
+/* Карточка «горячий сбор» в герое */
+(function () {
+  const p = projects().find(x => x.stage === 'collecting');
+  const percent = pct(p);
+  document.getElementById('heroCard').innerHTML = `
+    <div class="between mb14">
+      <span class="chip chip-blue"><span class="dt"></span>Идёт сбор средств</span>
+      <span class="chip chip-amber">${days(p.daysLeft)}</span>
+    </div>
+    <h3 style="margin-bottom:6px">${p.title}</h3>
+    <div class="ploc mb14">📍 ${p.district} · ${p.addr.split('—')[0].trim()}</div>
+    <div class="money"><b>${rub(p.raised)}</b><span>цель ${rub(p.goal)}</span></div>
+    <div class="bar bar-lg mt8"><i style="width:${percent}%"></i></div>
+    <div class="left-sum mt14"><span>Осталось собрать</span><b>${rub(left(p))}</b></div>
+    <div class="facts mt14">
+      <div><span>Стоимость проекта</span><b>${rub(p.cost)}</b></div>
+      <div><span>Доля жителей</span><b>${p.sharePct}%</b></div>
+      <div><span>Уже поддержали</span><b>${p.donors} чел.</b></div>
+    </div>
+    <a class="btn btn-p btn-full mt14" href="project.html?id=${p.id}">Поддержать проект</a>`;
+})();
+
+/* Плитки этапов */
+document.getElementById('tiles').innerHTML = [
+  ['Заявка и подписи', 'Инициатор заполняет форму и смету построчно, группа от 10 жителей подписывает заявку через Госуслуги.', 'Итог: заявка, протокол собрания и реестр подписей'],
+  ['Сбор средств', 'Жители и бизнес вносят долю софинансирования картой или СБП. Видно, сколько собрано и сколько осталось.', 'Итог: договор пожертвования, чек, реестр взносов'],
+  ['Отправка документов', 'Платформа собирает пакет, подписывает его через ЕСИА и отправляет в администрацию с входящим номером.', 'Итог: входящий номер и срок ответа администрации'],
+  ['Выбор подрядчика', 'Администрация публикует закупку по 44-ФЗ. На платформе видно заявки, цены, опыт и протокол.', 'Итог: протокол и муниципальный контракт'],
+  ['Отчёт подрядчика', 'Подрядчик ведёт исполнительный график и выкладывает фотоотчёт. Жители фиксируют замечания.', 'Итог: график, фото по датам, акты КС-2'],
+  ['Завершён', 'Итоговый отчёт: сколько собрали жители, сколько добавил город, куда ушла экономия и что вернули.', 'Итог: отчёт, возврат остатка, оценка жителей']
+].map((t, i) => `<div class="tile t${i + 1}">
+    <span class="num">ЭТАП ${i + 1}</span><h3>${t[0]}</h3><p>${t[1]}</p><div class="out">${t[2]}</div>
+  </div>`).join('');
+
+
+/* Проекты */
+document.getElementById('collecting').innerHTML =
+  projects().filter(p => p.stage === 'collecting' || p.stage === 'idea').map(projectCard).join('');
+document.getElementById('pipeline').innerHTML =
+  projects().filter(p => ['documents', 'contractor', 'works', 'done'].includes(p.stage)).slice(0, 3).map(projectCard).join('');
+</script>
+</body>
+</html>

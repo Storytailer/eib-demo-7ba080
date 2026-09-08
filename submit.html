@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Подать инициативу · ЭИБ Обнинск</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%2312275C'/%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M24 6 39 14.5v17L24 40 9 31.5v-17z' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28v6.5a2.4 2.4 0 0 0 2.4 2.4h13.2a2.4 2.4 0 0 0 2.4-2.4V28' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28h4M29 28h4' stroke='%23ffffff' stroke-width='2'/%3E%3Cg transform='rotate(-16 24 19)'%3E%3Crect x='20' y='11' width='8.4' height='16' rx='1.4' fill='%23ffffff'/%3E%3Cpath d='m21.9 19 2.1 2.2 4-5.4' stroke='%23E32C26' stroke-width='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="hdr"></div>
+
+<section class="pagehead">
+  <div class="wrap">
+    <div class="crumbs"><a href="index.html">Главная</a> → Подать инициативу</div>
+    <div class="between">
+      <div style="max-width:720px">
+        <span class="eyebrow">Форма подачи · 3 шага</span>
+        <h2 class="mt8">Предложите проект для своего района</h2>
+        <p class="lead mt8">Заполните заявку, соберите смету построчно и отправьте пакет через Госуслуги.
+          Всё, что раньше требовало бумаги и подписных листов, платформа формирует сама.</p>
+      </div>
+      <div class="facts facts-side">
+        <div><span>Лимит проекта</span><b id="lim">—</b></div>
+        <div><span>Нужно подписей</span><b>10 жителей 18+</b></div>
+        <div><span>Доля жителей</span><b>от 5% сметы</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap split">
+    <div>
+      <div class="steps mb28" id="wsteps" style="grid-template-columns:repeat(3,1fr)"></div>
+
+      <!-- ШАГ 1 -->
+      <div class="card wstep" data-step="1">
+        <h3 class="mb14">1. Сведения об инициативе<span class="who who-i">заполняет инициатор</span></h3>
+        <div class="row2">
+          <div class="field"><label>Категория проекта</label>
+            <select class="inp" id="f-cat">
+              <option>Благоустройство</option><option>Детская площадка</option><option>Спорт</option>
+              <option>Освещение</option><option>Дороги и тротуары</option><option>Культура и досуг</option>
+            </select></div>
+          <div class="field"><label>Микрорайон</label>
+            <select class="inp" id="f-dist">
+              <option>Старый город</option><option>Центр</option><option>Заовражье</option>
+              <option>Мкрн 27</option><option>Мкрн 38</option><option>Мкрн 51</option>
+            </select></div>
+        </div>
+        <div class="field"><label>Название проекта</label>
+          <input class="inp" id="f-title" placeholder="Например: Сквер у Дома учёных">
+          <div class="hint">Коротко и по делу — это название увидят жители при голосовании и сборе средств.</div></div>
+        <div class="field"><label>Адрес или территория</label>
+          <input class="inp" id="f-addr" placeholder="Улица, дом, ориентир"></div>
+        <div class="field"><label>Какую проблему решает проект</label>
+          <textarea class="inp" id="f-prob" placeholder="Что не так сейчас, сколько людей это касается, были ли обращения"></textarea></div>
+        <div class="field"><label>Что получится в результате</label>
+          <textarea class="inp" id="f-res" placeholder="Конкретный измеримый результат: метры, штуки, количество жителей"></textarea></div>
+        <div class="between">
+          <span class="muted" style="font-size:13.5px">Черновик сохраняется автоматически</span>
+          <button class="btn btn-p" data-go="2">Дальше — смета</button>
+        </div>
+      </div>
+
+      <!-- ШАГ 2 -->
+      <div class="card wstep" data-step="2" style="display:none">
+        <h3 class="mb8">2. Смета и план работ<span class="who who-i">инициатор</span><span class="who who-p">итог считает платформа</span></h3>
+        <p class="muted mb20">Впишите статьи расходов построчно. Итоговую сумму платформа считает сама —
+          вручную её изменить нельзя, поэтому вопрос «откуда взялись 2 миллиона» отпадает.</p>
+
+        <div class="tbl-wrap"><table class="tbl" id="smeta">
+          <thead><tr><th>Статья расходов</th><th class="r" style="width:110px">Кол-во</th><th class="r" style="width:140px">Цена, ₽</th><th class="r" style="width:140px">Сумма, ₽</th><th style="width:44px"></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table></div>
+        <button class="btn btn-o btn-s mt14" id="addRow">+ Добавить статью</button>
+
+        <div class="facts mt20">
+          <div><span>Итог по смете</span><b id="total">0 ₽</b></div>
+          <div><span>Лимит инициативного проекта в Обнинске</span><b id="lim2">—</b></div>
+          <div><span>Доля жителей (софинансирование)</span><b id="share">—</b></div>
+        </div>
+        <div class="field mt20"><label>Доля софинансирования жителей, %</label>
+          <input class="inp" id="f-share" type="number" min="5" max="30" value="10">
+          <div class="hint">Минимальная доля устанавливается муниципалитетом. Итоговую цифру фиксирует
+            администрация решением комиссии.</div></div>
+        <div id="limitNote"></div>
+
+        <div class="field mt20"><label>План работ<span class="who who-i">обязательное поле</span></label>
+          <textarea class="inp" id="f-plan" placeholder="Этапы и сроки: подготовка территории, основные работы, монтаж оборудования, сдача"></textarea>
+          <div class="hint">После закупки подрядчик загрузит исполнительный график — он появится в карточке проекта
+            рядом с вашим планом, чтобы было видно расхождения.</div></div>
+
+        <div class="between">
+          <button class="btn btn-ghost" data-go="1">Назад</button>
+          <button class="btn btn-p" data-go="3">Дальше — подписи</button>
+        </div>
+      </div>
+
+      <!-- ШАГ 3 -->
+      <div class="card wstep" data-step="3" style="display:none">
+        <h3 class="mb8">3. Подписи группы и документы<span class="who who-p">формирует платформа</span></h3>
+        <p class="muted mb20">Заявку вносит группа не менее 10 жителей старше 18 лет (ст. 49 ФЗ-33).
+          Раньше это были бумажные подписные листы — в Обнинске за один сезон собрали 704 подписи вручную.
+          Здесь подпись ставится через Госуслуги за минуту.</p>
+
+        <div class="card card-flat mb20">
+          <div class="between mb14"><b>Подписи группы</b><span class="chip chip-amber" id="signCnt">1 из 10</span></div>
+          <div class="bar bar-lg warn"><i id="signBar" style="width:10%"></i></div>
+          <div class="flexr mt20">
+            <button class="btn btn-o btn-s" id="invite">Скопировать ссылку для соседей</button>
+            <button class="btn btn-o btn-s" id="addSign">Имитировать подпись жителя</button>
+          </div>
+        </div>
+
+        <h4 class="mb14">Пакет документов соберётся сам</h4>
+        <div class="doc"><span class="ic ok">✓</span><div class="tx"><b>Заявка на инициативный проект</b><small>из полей шагов 1 и 2</small></div></div>
+        <div class="doc"><span class="ic ok">✓</span><div class="tx"><b>Смета с расчётом по статьям</b><small>итог считает платформа</small></div></div>
+        <div class="doc"><span class="ic wait">⏳</span><div class="tx"><b>Протокол собрания инициативной группы</b><small>сформируется при 10 подписях</small></div></div>
+        <div class="doc"><span class="ic wait">⏳</span><div class="tx"><b>Реестр электронных подписей</b><small>идентификаторы ЕСИА без персональных данных (152-ФЗ)</small></div></div>
+
+        <div class="note note-b mt20"><b>Что дальше.</b> Администрация рассматривает заявку до 30 дней,
+          проверяет смету и выносит её на конкурсную комиссию. После одобрения открывается сбор средств
+          на 40 рабочих дней по п. 8.2 Положения № 05-22.</div>
+
+        <div class="between mt28">
+          <button class="btn btn-ghost" data-go="2">Назад</button>
+          <button class="btn btn-g" id="send">Подать через Госуслуги</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Боковая колонка -->
+    <aside>
+      <div class="sticky">
+        <div class="card">
+          <h4 class="mb14">Предварительный просмотр</h4>
+          <div class="pcover cv-1" id="pv-cover" style="border-radius:14px;height:124px"><span class="chip">Черновик</span></div>
+          <h3 class="mt14" id="pv-title">Название проекта</h3>
+          <div class="ploc mb14" id="pv-loc">📍 микрорайон · адрес</div>
+          <div class="facts">
+            <div><span>Смета</span><b id="pv-cost">0 ₽</b></div>
+            <div><span>Доля жителей</span><b id="pv-goal">0 ₽</b></div>
+            <div><span>Подписей</span><b id="pv-sign">1 из 10</b></div>
+          </div>
+        </div>
+        <div class="card">
+          <h4 class="mb14">Кто что заполняет</h4>
+          <div class="doc"><span class="ic">🧑</span><div class="tx"><b>Инициатор</b><small>сведения, смета построчно, план работ</small></div></div>
+          <div class="doc"><span class="ic">⚙️</span><div class="tx"><b>Платформа</b><small>итог сметы, документы, реестры, чеки</small></div></div>
+          <div class="doc"><span class="ic wait">🏛️</span><div class="tx"><b>Администрация</b><small>проверка сметы, решение комиссии, закупка</small></div></div>
+          <div class="doc"><span class="ic ok">🏗️</span><div class="tx"><b>Подрядчик</b><small>исполнительный график и фотоотчёт</small></div></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+mount('submit');
+document.getElementById('lim').textContent = rub(CITY.limit);
+document.getElementById('lim2').textContent = rub(CITY.limit);
+
+/* ---- Шаги ---- */
+let step = 1, signs = 1;
+const names = ['Сведения', 'Смета и план работ', 'Подписи и документы'];
+function drawSteps() {
+  document.getElementById('wsteps').innerHTML = names.map((n, i) => {
+    const k = i + 1;
+    return `<div class="step ${k < step ? 'done' : (k === step ? 'now' : '')}">
+      <div class="k">ШАГ ${k}${k < step ? ' · ГОТОВО' : ''}</div><div class="n">${n}</div></div>`;
+  }).join('');
+  document.querySelectorAll('.wstep').forEach(s => s.style.display = (+s.dataset.step === step) ? '' : 'none');
+}
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
+  step = +b.dataset.go; drawSteps(); window.scrollTo({ top: 220, behavior: 'smooth' });
+}));
+drawSteps();
+
+/* ---- Смета ---- */
+const start = [
+  { t: 'Демонтаж старого покрытия и вывоз', q: 380, u: 1150 },
+  { t: 'Устройство дорожек из тротуарной плитки', q: 380, u: 2900 },
+  { t: 'Опоры освещения светодиодные', q: 24, u: 19500 }
+];
+function drawRows() {
+  document.getElementById('rows').innerHTML = start.map((r, i) => `<tr>
+    <td><input class="inp" data-i="${i}" data-f="t" value="${r.t}"></td>
+    <td><input class="inp r" data-i="${i}" data-f="q" type="number" value="${r.q}" style="text-align:right"></td>
+    <td><input class="inp" data-i="${i}" data-f="u" type="number" value="${r.u}" style="text-align:right"></td>
+    <td class="r strong">${fmt(r.q * r.u)}</td>
+    <td class="r"><button class="btn btn-ghost btn-s" data-del="${i}">×</button></td></tr>`).join('');
+
+  document.querySelectorAll('#rows input').forEach(inp => inp.addEventListener('input', () => {
+    const r = start[+inp.dataset.i];
+    r[inp.dataset.f] = inp.dataset.f === 't' ? inp.value : (parseFloat(inp.value) || 0);
+    calc(); if (inp.dataset.f !== 't') drawRows();
+  }));
+  document.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    start.splice(+b.dataset.del, 1); drawRows(); calc();
+  }));
+}
+document.getElementById('addRow').addEventListener('click', () => {
+  start.push({ t: 'Новая статья расходов', q: 1, u: 0 }); drawRows(); calc();
+});
+
+function calc() {
+  const total = start.reduce((s, r) => s + r.q * r.u, 0);
+  const sharePct = Math.min(30, Math.max(5, parseFloat(document.getElementById('f-share').value) || 10));
+  const goal = Math.round(total * sharePct / 100);
+  document.getElementById('total').textContent = rub(total);
+  document.getElementById('share').textContent = sharePct + '% · ' + rub(goal);
+  document.getElementById('pv-cost').textContent = rub(total);
+  document.getElementById('pv-goal').textContent = rub(goal);
+  document.getElementById('limitNote').innerHTML = total > CITY.limit
+    ? `<div class="note note-r mt20"><b>Смета превышает лимит на ${rub(total - CITY.limit)}.</b>
+        Заявку с такой суммой платформа не примет: лимит инициативного проекта для Обнинска — ${rub(CITY.limit)}.
+        Уменьшите объёмы или разделите работы на два проекта.</div>`
+    : `<div class="note note-g mt20"><b>Смета в пределах лимита.</b> Итог ${rub(total)} из ${rub(CITY.limit)}.
+        На отборе администрация проверит расценки и зафиксирует сумму решением комиссии.</div>`;
+}
+document.getElementById('f-share').addEventListener('input', calc);
+drawRows(); calc();
+
+/* ---- Живой предпросмотр ---- */
+const bind = (id, fn) => document.getElementById(id).addEventListener('input', fn);
+bind('f-title', () => document.getElementById('pv-title').textContent =
+  document.getElementById('f-title').value || 'Название проекта');
+const loc = () => document.getElementById('pv-loc').textContent =
+  '📍 ' + document.getElementById('f-dist').value + ' · ' + (document.getElementById('f-addr').value || 'адрес');
+bind('f-addr', loc); document.getElementById('f-dist').addEventListener('change', loc);
+
+/* обложка предпросмотра меняется вместе с категорией */
+const drawCover = () => {
+  const cat = document.getElementById('f-cat').value;
+  document.getElementById('pv-cover').innerHTML =
+    coverArt({ cat }) + '<span class="chip">Черновик</span><span class="cat-pill">' + cat + '</span>';
+};
+document.getElementById('f-cat').addEventListener('change', drawCover);
+drawCover();
+
+/* ---- Подписи ---- */
+function drawSign() {
+  document.getElementById('signCnt').textContent = signs + ' из 10';
+  document.getElementById('signBar').style.width = Math.min(100, signs * 10) + '%';
+  document.getElementById('pv-sign').textContent = signs + ' из 10';
+  if (signs >= 10) {
+    document.getElementById('signCnt').className = 'chip chip-green';
+    document.querySelector('#signBar').parentElement.className = 'bar bar-lg ok';
+  }
+}
+document.getElementById('addSign').addEventListener('click', () => {
+  if (signs < 10) { signs++; drawSign(); toast(signs >= 10 ? 'Собрано 10 подписей — протокол собрания сформирован' : 'Подпись через Госуслуги учтена: ' + signs + ' из 10'); }
+});
+document.getElementById('invite').addEventListener('click', () => {
+  if (navigator.clipboard) navigator.clipboard.writeText(location.href);
+  toast('Ссылка скопирована — отправьте её соседям и совету дома');
+});
+drawSign();
+
+/* ---- Отправка ---- */
+document.getElementById('send').addEventListener('click', () => {
+  const total = start.reduce((s, r) => s + r.q * r.u, 0);
+  if (!document.getElementById('f-title').value.trim()) { step = 1; drawSteps(); toast('Укажите название проекта'); return; }
+  if (total > CITY.limit) { step = 2; drawSteps(); toast('Смета превышает лимит ' + rub(CITY.limit)); return; }
+  if (signs < 10) { toast('Нужно 10 подписей: сейчас ' + signs + '. Отправьте ссылку соседям'); return; }
+  toast('Заявка подписана через Госуслуги и отправлена в администрацию');
+  setTimeout(() => toast('Присвоен входящий номер. Срок рассмотрения — до 30 дней'), 2600);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Проект · ЭИБ Обнинск</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%2312275C'/%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M24 6 39 14.5v17L24 40 9 31.5v-17z' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28v6.5a2.4 2.4 0 0 0 2.4 2.4h13.2a2.4 2.4 0 0 0 2.4-2.4V28' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28h4M29 28h4' stroke='%23ffffff' stroke-width='2'/%3E%3Cg transform='rotate(-16 24 19)'%3E%3Crect x='20' y='11' width='8.4' height='16' rx='1.4' fill='%23ffffff'/%3E%3Cpath d='m21.9 19 2.1 2.2 4-5.4' stroke='%23E32C26' stroke-width='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="hdr"></div>
+
+<section class="pagehead">
+  <div class="wrap" id="head"></div>
+</section>
+
+<section class="sec-s">
+  <div class="wrap">
+    <div class="pbanner" id="banner"></div>
+    <div class="steps" id="steps"></div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:16px">
+  <div class="wrap split">
+    <div id="main"></div>
+    <aside id="side"></aside>
+  </div>
+</section>
+
+<!-- Взнос -->
+<div class="modal" id="mPay"><div class="modal-box">
+  <button class="modal-x">×</button>
+  <h3>Поддержать проект</h3>
+  <p class="muted mb20" id="payTitle"></p>
+  <div class="amounts" id="amounts">
+    <button data-v="300">300 ₽</button>
+    <button data-v="500" class="on">500 ₽</button>
+    <button data-v="1000">1 000 ₽</button>
+    <button data-v="3000">3 000 ₽</button>
+    <button data-v="5000">5 000 ₽</button>
+  </div>
+  <div class="field">
+    <label>Своя сумма, ₽</label>
+    <input class="inp" id="paySum" type="number" min="1" value="500">
+    <div class="hint">Минимальный взнос — 1 ₽. Ограничения по максимуму нет.</div>
+  </div>
+  <div class="note note-b mb20">Платформа сформирует <b>договор пожертвования</b> и <b>кассовый чек</b>,
+    а средства поступят в бюджет города по реквизитам договора (п. 8.2 Положения № 05-22).
+    Если проект не будет реализован — взнос возвращается (ст. 70 ФЗ-33).</div>
+  <button class="btn btn-p btn-full" id="payGo">Оплатить картой или СБП</button>
+</div></div>
+
+<!-- Замечание жителя -->
+<div class="modal" id="mIssue"><div class="modal-box">
+  <button class="modal-x">×</button>
+  <h3>Замечание по работам</h3>
+  <p class="muted mb20">Замечание увидят подрядчик, куратор проекта в администрации и остальные жители.</p>
+  <div class="field"><label>Что не так</label><textarea class="inp" id="issueText" placeholder="Например: не огорожена зона работ со стороны школы"></textarea></div>
+  <button class="btn btn-d btn-full" id="issueGo">Отправить замечание</button>
+</div></div>
+
+<!-- Фотоотчёт подрядчика -->
+<div class="modal" id="mShot"><div class="modal-box">
+  <button class="modal-x">×</button>
+  <h3>Фотоотчёт по этапу</h3>
+  <p class="muted mb20">Отчёт публикуется жителям сразу, дата фиксируется платформой.</p>
+  <div class="field"><label>Что сделано</label><input class="inp" id="shotText" placeholder="Например: уложено 180 м² покрытия"></div>
+  <div class="field"><label>Фотографии</label>
+    <div class="doc"><span class="ic">📷</span><div class="tx"><b>Добавить файлы</b><small>JPG/PNG до 10 МБ · демо-режим</small></div></div>
+  </div>
+  <button class="btn btn-g btn-full" id="shotGo">Опубликовать отчёт</button>
+</div></div>
+
+<div id="ftr"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+mount('projects');
+
+const id = param('id') || PROJECTS[0].id;
+let p = project(id);
+if (!p) { location.href = 'projects.html'; }
+
+const role = () => State.role();
+const smetaTotal = pr => pr.smeta.reduce((s, i) => s + i.q * i.u, 0);
+
+/* Лента последних взносов. В демо строится детерминированно из id проекта,
+   в реальной системе это обезличенный реестр взносов из платёжного шлюза. */
+const FEED_NAMES = ['Анна Т.', 'Игорь М.', 'Светлана П.', 'Дмитрий К.', 'Ольга В.', 'Николай С.',
+  'Екатерина Л.', 'Павел Ж.', 'Марина Б.', 'Артём Р.', 'Юлия Н.', 'Сергей Д.'];
+function feed(pr) {
+  if (pr.feed) return pr.feed;
+  let seed = pr.id.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const sums = [300, 500, 1000, 1500, 2000, 3000, 5000];
+  return Array.from({ length: 6 }, (_, i) => ({
+    n: FEED_NAMES[Math.floor(rnd() * FEED_NAMES.length)],
+    s: sums[Math.floor(rnd() * sums.length)],
+    d: i === 0 ? 'сегодня' : (i === 1 ? 'вчера' : i + ' ' + plural(i, 'день', 'дня', 'дней') + ' назад')
+  }));
+}
+
+/* ---------------- Шапка проекта ---------------- */
+function drawHead() {
+  const s = stage(p.stage);
+  document.getElementById('head').innerHTML = `
+    <div class="crumbs"><a href="index.html">Главная</a> → <a href="projects.html">Проекты</a> → ${p.title}</div>
+    <div class="between">
+      <div style="max-width:760px">
+        <div class="flexr mb14">
+          <span class="chip ${s.chip}"><span class="dt"></span>Этап ${s.n} · ${s.name}</span>
+          <span class="chip chip-grey">${p.cat}</span>
+          <span class="chip chip-grey">${p.district}</span>
+        </div>
+        <h2>${p.title}</h2>
+        <p class="lead mt8">📍 ${p.addr}</p>
+      </div>
+      <div class="facts facts-side">
+        <div><span>Стоимость проекта</span><b>${rub(p.cost)}</b></div>
+        <div><span>Доля жителей</span><b>${p.sharePct}% · ${rub(p.goal)}</b></div>
+        <div><span>Поддержали</span><b>${p.votes} ${plural(p.votes, "голос", "голоса", "голосов")}</b></div>
+      </div>
+    </div>`;
+}
+
+/* ---------------- Крупное превью объекта ---------------- */
+function drawBanner() {
+  const s = stage(p.stage);
+  document.getElementById('banner').className = 'pbanner ' + p.cover;
+  document.getElementById('banner').innerHTML = `
+    ${coverArt(p)}
+    <div class="pbanner-top">
+      <span class="cat-pill">${p.cat}</span>
+      <span class="chip"><span class="dt"></span>Этап ${s.n} из ${STAGES.length} · ${s.name}</span>
+    </div>
+    <div class="pbanner-bot">
+      <b>${p.result.split(':')[0]}</b>
+      <span>${p.district} · ${p.addr}</span>
+    </div>`;
+}
+
+/* ---------------- Трекер этапов ---------------- */
+function drawSteps() {
+  const cur = stageIndex(p.stage);
+  document.getElementById('steps').innerHTML = STAGES.map((s, i) => {
+    const cls = i < cur ? 'done' : (i === cur ? 'now' : '');
+    return `<div class="step ${cls}"><div class="k">ЭТАП ${s.n}${i < cur ? ' · ГОТОВО' : (i === cur ? ' · СЕЙЧАС' : '')}</div>
+      <div class="n">${s.name}</div></div>`;
+  }).join('');
+}
+
+/* ---------------- Вкладки ---------------- */
+function paneOverview() {
+  return `<div class="card">
+      <h3 class="mb14">О проекте</h3>
+      <p class="lead" style="font-size:17px;color:var(--ink)">${p.summary}</p>
+      <div class="grid g2 mt20">
+        <div class="card card-flat"><h4 class="mb8">Проблема</h4><p class="muted">${p.problem}</p></div>
+        <div class="card card-flat"><h4 class="mb8">Что получится</h4><p class="muted">${p.result}</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Кто ведёт проект</h3><span class="chip chip-blue">инициативная группа</span></div>
+      <div class="facts">
+        <div><span>Инициатор</span><b>${p.initiator.name}</b></div>
+        <div><span>Группа</span><b>${p.initiator.about}</b></div>
+        <div><span>Электронных подписей</span><b>${p.signatures.count} из ${p.signatures.need} необходимых</b></div>
+        <div><span>Дата подачи</span><b>${p.signatures.date}</b></div>
+      </div>
+      <div class="note note-b mt20">Подписи собраны через Госуслуги: платформа хранит идентификатор учётной записи
+        и подтверждение возраста 18+, без паспортных данных (152-ФЗ). Бумажные подписные листы не нужны.</div>
+    </div>
+    ${p.stage === 'collecting' ? `<div class="card">
+      <div class="card-h"><h3>Последние взносы</h3>
+        <span class="chip chip-green">${p.donors} ${plural(p.donors, 'плательщик', 'плательщика', 'плательщиков')}</span></div>
+      <div class="feed">
+        ${feed(p).map(f => `<div class="feed-row">
+          <span class="av ${f.n === 'Вы' ? 'me' : ''}">${f.n === 'Вы' ? '★' : f.n.charAt(0)}</span>
+          <div><b>${f.n}</b><small>${f.d} · договор пожертвования и чек сформированы</small></div>
+          <span class="s">${rub(f.s)}</span></div>`).join('')}
+      </div>
+      <div class="note note-b mt20">Реестр взносов публичный, но обезличенный: видно сумму и дату,
+        персональные данные плательщиков не раскрываются (152-ФЗ). Полный реестр уходит в администрацию
+        вместе с пакетом документов.</div>
+    </div>` : ''}
+    <div class="card">
+      <h3 class="mb20">Хроника проекта</h3>
+      ${p.log.slice().reverse().map(l => `<div class="doc">
+        <span class="ic ${l.a === 'администрация' ? 'wait' : (l.a === 'платформа' ? '' : 'ok')}">${l.a === 'администрация' ? '🏛️' : (l.a === 'подрядчик' ? '🏗️' : (l.a === 'платформа' ? '⚙️' : '🧑'))}</span>
+        <div class="tx"><b>${l.t}</b><small>${l.d} · ${l.a}</small></div></div>`).join('')}
+    </div>`;
+}
+
+function paneSmeta() {
+  const total = smetaTotal(p);
+  const approved = stageIndex(p.stage) > 0;
+  return `<div class="card">
+    <div class="card-h">
+      <div><h3>Смета проекта</h3><p class="muted">Строки вносит инициатор, итог считает платформа<span class="who who-i">инициатор</span><span class="who who-p">расчёт платформы</span></p></div>
+      <span class="chip ${approved ? 'chip-green' : 'chip-amber'}">${approved ? 'Утверждена администрацией' : 'На проверке'}</span>
+    </div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Статья расходов</th><th class="r">Кол-во</th><th class="r">Цена, ₽</th><th class="r">Сумма, ₽</th></tr></thead>
+      <tbody>
+        ${p.smeta.map(i => `<tr><td>${i.t}</td><td class="r">${fmt(i.q)} ${i.unit}</td>
+          <td class="r">${fmt(i.u)}</td><td class="r strong">${fmt(i.q * i.u)}</td></tr>`).join('')}
+        <tr class="sum"><td colspan="3">Итого по смете</td><td class="r">${fmt(total)}</td></tr>
+      </tbody>
+    </table></div>
+    <div class="grid g2 mt20">
+      <div class="facts">
+        <div><span>Лимит инициативного проекта</span><b>${rub(CITY.limit)}</b></div>
+        <div><span>Смета проекта</span><b>${rub(total)}</b></div>
+        <div><span>Доля жителей (${p.sharePct}%)</span><b>${rub(p.goal)}</b></div>
+        <div><span>Доля бюджета и субсидии</span><b>${rub(p.cost - p.goal)}</b></div>
+      </div>
+      <div class="note ${total <= CITY.limit ? 'note-g' : 'note-r'}">
+        <b>${total <= CITY.limit ? 'Смета в пределах лимита.' : 'Превышен лимит.'}</b>
+        Платформа не принимает заявку со сметой выше ${rub(CITY.limit)} — лимит инициативного проекта
+        для города Обнинска. Итог считается автоматически, вручную поле «итого» не заполняется.
+      </div>
+    </div>
+  </div>`;
+}
+
+function paneDocs() {
+  const st = { approved: ['ok', '✓', 'Принят'], signed: ['ok', '✍️', 'Подписан ЕСИА'], sent: ['wait', '📨', 'Отправлен'], progress: ['wait', '⏳', 'Формируется'], wait: ['', '○', 'Ожидает'] };
+  const pack = p.docsPack ? `
+    <div class="card">
+      <div class="card-h"><h3>Отправка пакета в администрацию</h3>
+        <span class="chip ${p.docsPack.status.indexOf('Принято') === 0 ? 'chip-green' : 'chip-amber'}">${p.docsPack.status}</span></div>
+      <div class="facts">
+        <div><span>Отправлено</span><b>${p.docsPack.sentAt}</b></div>
+        <div><span>Канал</span><b>${p.docsPack.channel}</b></div>
+        <div><span>Входящий номер</span><b>${p.docsPack.incoming}</b></div>
+        <div><span>Срок</span><b>${p.docsPack.deadline}</b></div>
+      </div>
+      <div class="note note-b mt20">Раньше этот пакет носили в администрацию на бумаге: заявка, протокол собрания,
+        подписные листы, договоры пожертвования и платёжки. Сейчас платформа собирает его сама,
+        подписывает через ЕСИА и отдаёт в систему документооборота с входящим номером и сроком ответа.</div>
+    </div>` : '';
+
+  return pack + `<div class="card">
+    <div class="card-h"><h3>Документы проекта</h3><span class="chip chip-grey">${p.docs.length} документов</span></div>
+    ${p.docs.map(d => {
+      const s = st[d.st] || st.wait;
+      return `<div class="doc"><span class="ic ${s[0]}">${s[1]}</span>
+        <div class="tx"><b>${d.name}</b><small>${s[2]} · ${d.date} · ${d.by}</small></div>
+        <div class="act"><button class="btn btn-o btn-s" onclick="toast('Демо: документ открылся бы в формате PDF')">Открыть</button></div></div>`;
+    }).join('')}
+    <div class="note note-a mt20"><b>Что генерирует платформа.</b> Заявку, протокол собрания группы,
+      реестр электронных подписей, договоры пожертвования с чеками, реестр взносов и итоговый отчёт.
+      Решения комиссии и извещение о закупке загружает администрация, исполнительный график — подрядчик.</div>
+  </div>`;
+}
+
+function paneTender() {
+  if (!p.tender) return placeholder('Выбор подрядчика', 'Закупка объявляется после того, как средства жителей поступили в бюджет города и документы приняты администрацией.');
+  const t = p.tender;
+  const stMap = { winner: ['chip-green', 'Победитель'], second: ['chip-grey', 'Второе место'], third: ['chip-grey', 'Третье место'], rejected: ['chip-red', 'Отклонена'] };
+  return `<div class="card">
+    <div class="card-h"><h3>Закупка по 44-ФЗ</h3><span class="chip chip-violet">${t.status}</span></div>
+    <div class="facts">
+      <div><span>Номер извещения</span><b>${t.number}</b></div>
+      <div><span>Способ</span><b>${t.law}</b></div>
+      <div><span>Площадка</span><b>${t.platform}</b></div>
+      <div><span>НМЦК</span><b>${rub(t.nmck)}</b></div>
+      <div><span>Опубликовано</span><b>${t.published}</b></div>
+      <div><span>Приём заявок до</span><b>${t.bidsUntil}</b></div>
+      <div><span>Дата аукциона</span><b>${t.auctionAt}</b></div>
+      <div><span>Срок выполнения работ</span><b>${t.term}</b></div>
+    </div>
+    <div class="note note-b mt20">Торги идут в ЕИС — платформа их не подменяет. Она показывает жителям то,
+      что обычно приходится искать в реестре закупок: кто подал заявку, с какой ценой, с каким опытом
+      и кто в итоге победил.</div>
+  </div>
+  <div class="card">
+    <div class="card-h"><h3>Заявки участников</h3><span class="chip chip-grey">${t.bids.length} ${plural(t.bids.length, 'заявка', 'заявки', 'заявок')}</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Участник</th><th class="r">Цена, ₽</th><th class="r">Снижение</th><th>Срок</th><th>Опыт</th><th>Статус</th></tr></thead>
+      <tbody>${t.bids.map(b => {
+        const s = stMap[b.st] || stMap.second;
+        return `<tr>
+          <td><b>${b.name}</b><br><small class="muted">ИНН ${b.inn}</small></td>
+          <td class="r strong">${fmt(b.price)}</td>
+          <td class="r">−${b.dis}%</td>
+          <td>${b.term}</td>
+          <td><small>${b.exp}<br><span class="muted">исполнено ${b.done}, срывов ${b.fail}</span></small></td>
+          <td><span class="chip ${s[0]}">${s[1]}</span>${b.why ? `<br><small class="muted">${b.why}</small>` : ''}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>
+    ${t.bids.some(b => b.st === 'winner') ? `<div class="note note-g mt20">
+      <b>Победитель: ${t.bids.find(b => b.st === 'winner').name}.</b>
+      Цена контракта ${rub(t.bids.find(b => b.st === 'winner').price)} — экономия
+      ${rub(t.nmck - t.bids.find(b => b.st === 'winner').price)} от НМЦК.
+      Экономия остаётся в бюджете города и учитывается в итоговом отчёте по проекту.</div>` : ''}
+  </div>`;
+}
+
+function paneWorks() {
+  if (!p.works) return placeholder('Отчёт подрядчика', 'Раздел открывается после заключения муниципального контракта: подрядчик загружает исполнительный график и публикует фотоотчёт по этапам.');
+  const w = p.works;
+  const stMap = { done: ['chip-green', 'выполнено'], now: ['chip-amber', 'в работе'], wait: ['chip-grey', 'ожидает'] };
+  return `<div class="card">
+    <div class="card-h"><h3>Ход работ</h3><span class="chip ${w.progress === 100 ? 'chip-green' : 'chip-amber'}">${w.progress}% выполнено</span></div>
+    <div class="bar bar-lg ${w.progress === 100 ? 'ok' : ''}"><i style="width:${w.progress}%"></i></div>
+    <div class="facts mt20">
+      <div><span>Контракт</span><b>${w.contract}</b></div>
+      <div><span>Подрядчик</span><b>${w.contractor}</b></div>
+      <div><span>Цена контракта</span><b>${rub(w.sum)}</b></div>
+      <div><span>Оплачено по актам</span><b>${rub(w.paid)}</b></div>
+      <div><span>Сроки</span><b>${w.start} — ${w.finish}</b></div>
+      <div><span>Куратор</span><b>${w.curator}</b></div>
+      <div><span>Общественный контроль</span><b>${w.publicCheck}</b></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3 class="mb20">Исполнительный график<span class="who who-c">загружает подрядчик</span></h3>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Этап работ</th><th>Сроки</th><th class="r">Готовность</th><th>Статус</th></tr></thead>
+      <tbody>${w.plan.map(i => {
+        const s = stMap[i.st];
+        return `<tr><td><b>${i.t}</b></td><td>${i.d}</td>
+          <td class="r" style="min-width:130px"><div class="bar ${i.p === 100 ? 'ok' : 'warn'}"><i style="width:${i.p}%"></i></div>
+          <small class="muted">${i.p}%</small></td>
+          <td><span class="chip ${s[0]}">${s[1]}</span></td></tr>`;
+      }).join('')}</tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-h"><h3>Фотоотчёт</h3><span class="chip chip-grey">${w.photos.length} ${plural(w.photos.length, "публикация", "публикации", "публикаций")}</span></div>
+    <div class="shots">${w.photos.map(f => `<div class="shot" style="background:${f.c}">${f.d}<br>${f.t}</div>`).join('')}</div>
+  </div>
+  <div class="card">
+    <div class="card-h"><h3>Замечания жителей</h3><span class="chip chip-blue">общественный контроль</span></div>
+    ${w.issues.length ? w.issues.map(i => `<div class="doc"><span class="ic wait">⚠️</span>
+      <div class="tx"><b>${i.t}</b><small>${i.d} · ${i.who} · ${i.st}</small></div></div>`).join('')
+      : '<p class="muted">Замечаний не поступало.</p>'}
+  </div>`;
+}
+
+function paneReport() {
+  if (!p.report) return placeholder('Итоговый отчёт', 'Отчёт публикуется администрацией в течение 30 календарных дней после завершения работ: сколько собрали жители, сколько добавил город, куда ушла экономия и что вернули плательщикам.');
+  const r = p.report;
+  return `<div class="card">
+    <div class="card-h"><h3>Итоговый отчёт</h3><span class="chip chip-green"><span class="dt"></span>Проект завершён</span></div>
+    <div class="grid g4 mb20">
+      <div class="kpi g"><b>${rub(r.citizens)}</b><span>вложили жители</span></div>
+      <div class="kpi b"><b>${rub(r.cityBudget)}</b><span>бюджет города</span></div>
+      <div class="kpi v"><b>${rub(r.regionSubsidy)}</b><span>субсидия области</span></div>
+      <div class="kpi a"><b>${rub(r.rest)}</b><span>экономия по итогам торгов</span></div>
+    </div>
+    <div class="facts">
+      <div><span>Объект открыт</span><b>${r.openedAt}</b></div>
+      <div><span>Отчёт опубликован</span><b>${r.published}</b></div>
+      <div><span>Цена контракта</span><b>${rub(r.contractSum)}</b></div>
+      <div><span>Возвращено плательщикам</span><b>${rub(r.restBack)}</b></div>
+      <div><span>Экономия осталась в бюджете города</span><b>${rub(r.restToCity)}</b></div>
+      <div><span>Гарантия</span><b>${r.guarantee}</b></div>
+      <div><span>Оценка жителей</span><b>${String(r.rating).replace('.', ',')} из 5 · ${r.votes} ${plural(r.votes, "оценка", "оценки", "оценок")}</b></div>
+    </div>
+    <h4 class="mt28 mb14">Что важно знать</h4>
+    ${r.facts.map(f => `<div class="doc"><span class="ic ok">✓</span><div class="tx"><b>${f}</b></div></div>`).join('')}
+    <div class="note note-g mt20">Излишек взносов возвращается плательщикам, если проект реализован дешевле
+      или не реализован вовсе — это прямое требование ст. 70 ФЗ-33. Платформа делает возврат
+      на ту же карту, с которой был взнос.</div>
+  </div>`;
+}
+
+function placeholder(title, text) {
+  return `<div class="card"><h3 class="mb14">${title}</h3><p class="lead">${text}</p>
+    <div class="note note-b mt20">Этап ещё не начался. Когда он откроется, жители получат уведомление,
+      а раздел заполнится документами и фактами автоматически.</div></div>`;
+}
+
+/* ---------------- Основная область ---------------- */
+function drawMain(activeTab) {
+  const list = [
+    ['over', 'Обзор', paneOverview],
+    ['smeta', 'Смета', paneSmeta],
+    ['docs', 'Документы', paneDocs],
+    ['tender', 'Выбор подрядчика', paneTender],
+    ['works', 'Отчёт подрядчика', paneWorks],
+    ['report', 'Итоговый отчёт', paneReport]
+  ];
+  const def = activeTab || ({ idea: 'over', collecting: 'over', documents: 'docs', contractor: 'tender', works: 'works', done: 'report' })[p.stage];
+  document.getElementById('main').innerHTML = `
+    <div class="tabs">${list.map(t => `<button data-t="${t[0]}" class="${t[0] === def ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
+    <div id="pane">${list.find(t => t[0] === def)[2]()}</div>`;
+  document.querySelectorAll('.tabs button').forEach(b =>
+    b.addEventListener('click', () => drawMain(b.dataset.t)));
+}
+
+/* ---------------- Боковая панель действий ---------------- */
+function drawSide() {
+  const r = role();
+  const percent = pct(p);
+  let box = '';
+
+  if (p.stage === 'collecting') {
+    box = `<div class="card">
+      <span class="chip chip-blue mb14"><span class="dt"></span>Идёт сбор средств</span>
+      <div class="money"><b>${rub(p.raised)}</b><span>цель ${rub(p.goal)}</span></div>
+      <div class="bar bar-lg mt8 ${percent >= 100 ? 'ok' : ''}"><i style="width:${percent}%"></i></div>
+      <div class="left-sum mt14 ${percent >= 100 ? 'done' : ''}">
+        <span>${percent >= 100 ? 'Цель достигнута' : 'Осталось собрать'}</span><b>${rub(left(p))}</b></div>
+      <div class="facts mt14">
+        <div><span>Собрано</span><b>${percent}%</b></div>
+        <div><span>Поддержали</span><b>${p.donors} чел.</b></div>
+        <div><span>Срок по договору</span><b>${p.deadline}</b></div>
+        <div><span>Осталось времени</span><b>${p.daysLeft ? days(p.daysLeft) : 'сбор закрыт'}</b></div>
+      </div>
+      ${r === 'admin'
+        ? `<button class="btn btn-d btn-full mt20" id="aClose">Закрыть сбор и сформировать пакет</button>
+           <p class="hint mt8 muted">Действие доступно куратору инициативного бюджетирования.</p>`
+        : `<button class="btn btn-p btn-full mt20" id="pay">Поддержать проект</button>
+           <p class="hint mt8 muted" style="font-size:12.5px">Оплата картой или СБП. Договор пожертвования и чек придут в личный кабинет.</p>`}
+    </div>
+    <div class="card"><h4 class="mb14">Что будет с деньгами</h4>
+      <div class="doc"><span class="ic">1</span><div class="tx"><b>Взнос резервируется</b><small>договор пожертвования и чек</small></div></div>
+      <div class="doc"><span class="ic">2</span><div class="tx"><b>Перевод в бюджет города</b><small>реестром, по п. 8.2</small></div></div>
+      <div class="doc"><span class="ic">3</span><div class="tx"><b>Возврат, если проект не пойдёт</b><small>ст. 70 ФЗ-33</small></div></div>
+    </div>`;
+  }
+
+  else if (p.stage === 'idea') {
+    const sp = Math.round(p.signatures.count / p.signatures.need * 100);
+    box = `<div class="card">
+      <span class="chip chip-violet mb14"><span class="dt"></span>Сбор подписей группы</span>
+      <div class="money"><b>${p.signatures.count} из ${p.signatures.need}</b><span>подписей</span></div>
+      <div class="bar bar-lg mt8 warn"><i style="width:${Math.min(100, sp)}%"></i></div>
+      <p class="muted mt14" style="font-size:13.5px">Заявку вносит группа не менее 10 жителей старше 18 лет
+        (ст. 49 ФЗ-33). Подпись ставится через Госуслуги за минуту — бумажные листы не нужны.</p>
+      ${r === 'citizen'
+        ? `<button class="btn btn-p btn-full mt20" id="sign">Подписать заявку</button>`
+        : `<a class="btn btn-o btn-full mt20" href="login.html?role=citizen">Войти и подписать</a>`}
+    </div>`;
+  }
+
+  else if (p.stage === 'documents') {
+    box = `<div class="card">
+      <span class="chip chip-cyan mb14"><span class="dt"></span>Документы у администрации</span>
+      <div class="facts">
+        <div><span>Пакет отправлен</span><b>${p.docsPack.sentAt}</b></div>
+        <div><span>Входящий</span><b>${p.docsPack.incoming}</b></div>
+        <div><span>Документов</span><b>${p.docs.length}</b></div>
+        <div><span>Срок ответа</span><b>${p.docsPack.deadline}</b></div>
+      </div>
+      ${r === 'admin'
+        ? `<button class="btn btn-g btn-full mt20" id="aAccept">Принять пакет и объявить закупку</button>
+           <button class="btn btn-o btn-full mt8" id="aReturn">Вернуть на доработку</button>`
+        : `<div class="note note-b mt20">Пока пакет проверяет администрация, от жителей ничего не требуется.
+             Как только документы примут, проект перейдёт к выбору подрядчика.</div>`}
+    </div>`;
+  }
+
+  else if (p.stage === 'contractor') {
+    const win = p.tender.bids.find(b => b.st === 'winner');
+    box = `<div class="card">
+      <span class="chip chip-violet mb14"><span class="dt"></span>Закупка по 44-ФЗ</span>
+      <div class="facts">
+        <div><span>НМЦК</span><b>${rub(p.tender.nmck)}</b></div>
+        <div><span>Заявок</span><b>${p.tender.bids.length}</b></div>
+        <div><span>Победитель</span><b>${win ? win.name : 'определяется'}</b></div>
+        <div><span>Цена контракта</span><b>${win ? rub(win.price) : '—'}</b></div>
+        <div><span>Экономия</span><b>${win ? rub(p.tender.nmck - win.price) : '—'}</b></div>
+      </div>
+      ${r === 'admin'
+        ? `<button class="btn btn-g btn-full mt20" id="aContract">Заключить контракт и передать подрядчику</button>`
+        : r === 'contractor'
+          ? `<div class="note note-g mt20">Ваша организация признана победителем. После подписания контракта
+               в кабинете откроется загрузка исполнительного графика.</div>`
+          : `<div class="note note-b mt20">Торги проходят в ЕИС. Платформа показывает заявки, цены и опыт
+               участников, чтобы жители видели, кому достанется их проект.</div>`}
+    </div>`;
+  }
+
+  else if (p.stage === 'works') {
+    const w = p.works;
+    box = `<div class="card">
+      <span class="chip chip-amber mb14"><span class="dt"></span>Работы идут</span>
+      <div class="money"><b>${w.progress}%</b><span>выполнено</span></div>
+      <div class="bar bar-lg mt8"><i style="width:${w.progress}%"></i></div>
+      <div class="facts mt14">
+        <div><span>Подрядчик</span><b>${w.contractor}</b></div>
+        <div><span>Контракт</span><b>${w.contract}</b></div>
+        <div><span>Сдача объекта</span><b>${w.finish}</b></div>
+        <div><span>Оплачено по актам</span><b>${rub(w.paid)}</b></div>
+      </div>
+      ${r === 'contractor'
+        ? `<button class="btn btn-g btn-full mt20" id="cShot">Опубликовать фотоотчёт</button>
+           <button class="btn btn-o btn-full mt8" id="cStep">Закрыть текущий этап</button>`
+        : r === 'admin'
+          ? `<button class="btn btn-d btn-full mt20" id="aAct">Принять акт КС-2</button>
+             <button class="btn btn-o btn-full mt8" id="aDone">Принять объект и опубликовать отчёт</button>`
+          : `<button class="btn btn-o btn-full mt20" id="issue">Сообщить о замечании</button>
+             <p class="hint mt8 muted" style="font-size:12.5px">Замечание увидят подрядчик и куратор проекта.</p>`}
+    </div>`;
+  }
+
+  else if (p.stage === 'done') {
+    const r2 = p.report;
+    box = `<div class="card">
+      <span class="chip chip-green mb14"><span class="dt"></span>Проект завершён</span>
+      <div class="money"><b>${String(r2.rating).replace('.', ',')} из 5</b><span>${r2.votes} ${plural(r2.votes, "оценка", "оценки", "оценок")}</span></div>
+      <div class="bar bar-lg ok mt8"><i style="width:${r2.rating / 5 * 100}%"></i></div>
+      <div class="facts mt14">
+        <div><span>Открыт</span><b>${r2.openedAt}</b></div>
+        <div><span>Жители вложили</span><b>${rub(r2.citizens)}</b></div>
+        <div><span>Возвращено</span><b>${rub(r2.restBack)}</b></div>
+        <div><span>Гарантия</span><b>${r2.guarantee}</b></div>
+      </div>
+      <button class="btn btn-o btn-full mt20" onclick="toast('Демо: открылся бы PDF итогового отчёта')">Скачать итоговый отчёт</button>
+    </div>`;
+  }
+
+  box += `<div class="card">
+    <h4 class="mb14">Документы и ссылки</h4>
+    <a class="btn btn-o btn-full" href="passport.html?id=${p.id}">🖨 Паспорт проекта для печати</a>
+    <p class="hint muted mt8" style="font-size:12.5px">Одна страница А4 со сметой, сроками, документами
+      и QR-кодом на карточку — то, что можно отдать комиссии или приложить к обращению.</p>
+    <div class="flexr mt14">
+      <button class="btn btn-ghost btn-s" onclick="navigator.clipboard&&navigator.clipboard.writeText(location.href);toast('Ссылка скопирована')">Скопировать ссылку</button>
+      <button class="btn btn-ghost btn-s" onclick="toast('Демо: подписка на уведомления включена')">Следить за проектом</button>
+    </div></div>`;
+
+  document.getElementById('side').innerHTML = `<div class="sticky">${box}</div>`;
+  bindSide();
+}
+
+/* ---------------- Действия ролей ---------------- */
+function bindSide() {
+  const on = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+
+  on('pay', () => {
+    if (role() !== 'citizen') { toast('Для взноса нужен вход через Госуслуги'); setTimeout(() => location.href = 'login.html?role=citizen&next=' + p.id, 900); return; }
+    document.getElementById('payTitle').textContent = p.title + ' · доля жителей ' + rub(p.goal);
+    openModal('mPay');
+  });
+
+  on('sign', () => {
+    const s = Object.assign({}, p.signatures);
+    s.count += 1;
+    const patch = { signatures: s };
+    if (s.count >= s.need) { patch.stage = 'collecting'; patch.daysLeft = 40; patch.deadline = 'через 40 рабочих дней'; }
+    State.patch(p.id, patch);
+    p = project(p.id);
+    toast(s.count >= s.need ? 'Подпись учтена. Собрано 10 подписей — заявка уходит на отбор' : 'Подпись через Госуслуги учтена: ' + s.count + ' из ' + s.need);
+    redraw();
+  });
+
+  on('aClose', () => { move('documents', 'Сбор закрыт, пакет документов сформирован и отправлен в администрацию'); });
+  on('aAccept', () => { move('contractor', 'Пакет принят, средства зачислены в бюджет города, закупка объявлена'); });
+  on('aReturn', () => { toast('Демо: проект возвращён инициатору с указанием причины'); });
+  on('aContract', () => { move('works', 'Контракт заключён, подрядчик получил доступ к графику работ'); });
+  on('aAct', () => { toast('Акт КС-2 принят, оплата этапа отправлена в казначейство'); });
+  on('aDone', () => { move('done', 'Объект принят, итоговый отчёт опубликован'); });
+
+  on('cShot', () => openModal('mShot'));
+  on('cStep', () => {
+    const w = JSON.parse(JSON.stringify(p.works));
+    const i = w.plan.findIndex(x => x.st !== 'done');
+    if (i < 0) { toast('Все этапы закрыты'); return; }
+    w.plan[i].p = 100; w.plan[i].st = 'done';
+    if (w.plan[i + 1]) w.plan[i + 1].st = 'now';
+    w.progress = Math.round(w.plan.reduce((s, x) => s + x.p, 0) / w.plan.length);
+    State.patch(p.id, { works: w });
+    p = project(p.id);
+    toast('Этап «' + w.plan[i].t + '» закрыт, готовность ' + w.progress + '%');
+    redraw();
+  });
+
+  on('issue', () => openModal('mIssue'));
+}
+
+/* Если проект переводят на этап, данных для которого в демо ещё нет,
+   платформа достраивает их так, как сделала бы в реальном процессе. */
+function synth(to) {
+  const patch = { stage: to };
+
+  if (to === 'documents' && !p.docsPack) {
+    patch.docsPack = {
+      sentAt: '05 октября 2026, 14:20',
+      channel: 'ЕСИА → СЭД администрации г. Обнинска',
+      incoming: 'вх. № 4210-ИБ от 05.10.2026',
+      deadline: 'ответ администрации — до 19 октября 2026',
+      status: 'На проверке в администрации'
+    };
+    patch.docs = p.docs.concat([
+      { name: 'Реестр взносов жителей (' + p.donors + ' платежей)', st: 'signed', date: '05.10.2026', by: 'платформа' },
+      { name: 'Договоры пожертвования и кассовые чеки', st: 'signed', date: '05.10.2026', by: 'платформа' },
+      { name: 'Платёжное поручение в бюджет города', st: 'sent', date: '05.10.2026', by: 'банк-партнёр' },
+      { name: 'Сопроводительное письмо в администрацию', st: 'sent', date: '05.10.2026', by: 'инициатор (ЕСИА)' }
+    ]);
+  }
+
+  if (to === 'contractor' && !p.tender) {
+    const win = Math.round(p.cost * 0.9 / 100) * 100;
+    patch.tender = {
+      number: '01373000128260005' + (10 + stageIndex(p.stage)),
+      law: '44-ФЗ, электронный аукцион',
+      platform: 'ЕИС / РТС-тендер',
+      nmck: p.cost,
+      published: '12 октября 2026',
+      bidsUntil: '26 октября 2026',
+      auctionAt: '29 октября 2026',
+      term: '50 календарных дней с даты контракта',
+      status: 'Заявки рассмотрены, победитель определён',
+      bids: [
+        { name: 'ООО «Обнинскстройсервис»', inn: '4025 118 345', price: win, dis: 10, term: '48 дней', exp: '14 объектов благоустройства с 2019 г.', done: 14, fail: 0, st: 'winner' },
+        { name: 'ООО «Калугадорстрой»', inn: '4028 077 210', price: Math.round(p.cost * 0.95 / 100) * 100, dis: 5, term: '50 дней', exp: '9 контрактов по благоустройству', done: 9, fail: 1, st: 'second' }
+      ]
+    };
+  }
+
+  if (to === 'works' && !p.works) {
+    const t = p.tender || (patch.tender);
+    const win = t.bids.find(b => b.st === 'winner');
+    patch.works = {
+      contract: '№ 58-МК/2026 от 05.11.2026',
+      contractor: win.name,
+      sum: win.price,
+      paid: 0,
+      start: '10 ноября 2026',
+      finish: '28 декабря 2026',
+      progress: 0,
+      curator: 'Отдел благоустройства администрации г. Обнинска',
+      publicCheck: '3 общественных инспектора от инициативной группы',
+      plan: [
+        { t: 'Подготовка территории', p: 0, st: 'now', d: '10.11 — 17.11' },
+        { t: 'Основные строительные работы', p: 0, st: 'wait', d: '18.11 — 08.12' },
+        { t: 'Монтаж оборудования', p: 0, st: 'wait', d: '09.12 — 20.12' },
+        { t: 'Благоустройство и сдача объекта', p: 0, st: 'wait', d: '21.12 — 28.12' }
+      ],
+      photos: [],
+      issues: []
+    };
+  }
+
+  if (to === 'done' && !p.report) {
+    const w = p.works || patch.works;
+    const rest = p.cost - w.sum;
+    patch.report = {
+      openedAt: '28 декабря 2026',
+      published: '15 января 2027',
+      contractSum: w.sum,
+      citizens: p.raised,
+      cityBudget: p.cost - p.goal - Math.round((p.cost - p.goal) * 0.35),
+      regionSubsidy: Math.round((p.cost - p.goal) * 0.35),
+      rest: rest,
+      restBack: Math.max(0, p.raised - p.goal),
+      restToCity: rest - Math.max(0, p.raised - p.goal),
+      rating: 4.7,
+      votes: Math.round(p.donors * 0.7),
+      guarantee: 'Гарантия подрядчика — 3 года',
+      facts: [
+        'Объект принят комиссией с участием общественных инспекторов от инициативной группы.',
+        'Экономия по итогам аукциона осталась в бюджете города и учтена в отчёте.',
+        'Излишки взносов возвращены плательщикам на карты, с которых поступила оплата (ст. 70 ФЗ-33).'
+      ]
+    };
+    if (patch.works || p.works) {
+      const w2 = JSON.parse(JSON.stringify(w));
+      w2.plan.forEach(i => { i.p = 100; i.st = 'done'; });
+      w2.progress = 100; w2.paid = w2.sum;
+      patch.works = w2;
+    }
+  }
+  return patch;
+}
+
+function move(to, msg) {
+  State.patch(p.id, synth(to));
+  p = project(p.id);
+  toast(msg);
+  redraw();
+}
+
+/* ---------------- Модальные окна ---------------- */
+document.querySelectorAll('#amounts button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#amounts button').forEach(x => x.classList.toggle('on', x === b));
+  document.getElementById('paySum').value = b.dataset.v;
+}));
+
+document.getElementById('payGo').addEventListener('click', () => {
+  const v = Math.max(1, parseInt(document.getElementById('paySum').value || '0', 10));
+  State.patch(p.id, {
+    raised: p.raised + v,
+    donors: p.donors + 1,
+    feed: [{ n: 'Вы', s: v, d: 'только что' }].concat(feed(p)).slice(0, 8)
+  });
+  p = project(p.id);
+  closeModal('mPay');
+  toast('Взнос ' + rub(v) + ' принят. Договор и чек — в личном кабинете');
+  if (p.raised >= p.goal) setTimeout(() => toast('Цель достигнута! Платформа формирует пакет документов'), 2000);
+  redraw();
+});
+
+document.getElementById('issueGo').addEventListener('click', () => {
+  const t = document.getElementById('issueText').value.trim();
+  if (!t) { toast('Опишите замечание'); return; }
+  const w = JSON.parse(JSON.stringify(p.works));
+  w.issues.unshift({ d: '05.10.2026', who: 'житель', t: t, st: 'Передано подрядчику' });
+  State.patch(p.id, { works: w });
+  p = project(p.id);
+  closeModal('mIssue');
+  document.getElementById('issueText').value = '';
+  toast('Замечание отправлено подрядчику и куратору проекта');
+  redraw();
+});
+
+document.getElementById('shotGo').addEventListener('click', () => {
+  const t = document.getElementById('shotText').value.trim() || 'Работы по текущему этапу';
+  const w = JSON.parse(JSON.stringify(p.works));
+  w.photos.push({ d: '05.10.2026', t: t, c: 'linear-gradient(135deg,#F0A020,#D9542B)' });
+  State.patch(p.id, { works: w });
+  p = project(p.id);
+  closeModal('mShot');
+  document.getElementById('shotText').value = '';
+  toast('Фотоотчёт опубликован — его уже видят жители');
+  redraw();
+});
+
+/* ---------------- Отрисовка ---------------- */
+function redraw() { drawHead(); drawBanner(); drawSteps(); drawMain(); drawSide(); }
+redraw();
+</script>
+</body>
+</html>

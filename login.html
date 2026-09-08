@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вход для участников · ЭИБ Обнинск</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%2312275C'/%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M24 6 39 14.5v17L24 40 9 31.5v-17z' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28v6.5a2.4 2.4 0 0 0 2.4 2.4h13.2a2.4 2.4 0 0 0 2.4-2.4V28' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M15 28h4M29 28h4' stroke='%23ffffff' stroke-width='2'/%3E%3Cg transform='rotate(-16 24 19)'%3E%3Crect x='20' y='11' width='8.4' height='16' rx='1.4' fill='%23ffffff'/%3E%3Cpath d='m21.9 19 2.1 2.2 4-5.4' stroke='%23E32C26' stroke-width='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="hdr"></div>
+
+<section class="pagehead">
+  <div class="wrap">
+    <div class="crumbs"><a href="index.html">Главная</a> → Вход</div>
+    <span class="eyebrow">Личный кабинет</span>
+    <h2 class="mt8">Выберите, как вы участвуете в проекте</h2>
+    <p class="lead mt8" style="max-width:760px">Жители и представители организаций входят через Госуслуги:
+      платформа получает подтверждение личности и возраста, но не хранит паспортные данные (152-ФЗ).
+      Сотрудники администрации входят по ведомственной учётной записи.</p>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="roles" id="roles"></div>
+
+    <div class="card mt28" style="background:var(--bg-2);border:none">
+      <div class="between">
+        <div style="max-width:640px">
+          <h3 class="mb8">Это демонстрационный прототип</h3>
+          <p class="muted">Вход имитирует ЕСИА: пароль не нужен, данные никуда не отправляются и хранятся
+            только в вашем браузере. Роль можно поменять в любой момент — интерфейс проекта
+            перестроится под неё.</p>
+        </div>
+        <button class="btn btn-o" id="reset">Сбросить демо-данные</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec sec-grey">
+  <div class="wrap">
+    <div class="sec-head"><div><span class="eyebrow">Что видит каждая роль</span>
+      <h2>Один проект — три рабочих места</h2></div></div>
+    <div class="tbl-wrap card" style="padding:22px">
+      <table class="tbl">
+        <thead><tr><th>Этап</th><th>Гражданин</th><th>Администрация</th><th>Подрядчик</th></tr></thead>
+        <tbody>
+          <tr><td><b>1. Заявка и подписи</b></td><td>подаёт заявку, подписывает через ЕСИА</td><td>проверяет смету, выносит на комиссию</td><td class="muted">—</td></tr>
+          <tr><td><b>2. Сбор средств</b></td><td>вносит долю картой или СБП</td><td>видит динамику сбора и срок по договору</td><td class="muted">—</td></tr>
+          <tr><td><b>3. Отправка документов</b></td><td>подписывает пакет и следит за входящим</td><td>принимает пакет, зачисляет средства в бюджет</td><td class="muted">—</td></tr>
+          <tr><td><b>4. Выбор подрядчика</b></td><td>видит заявки, цены и опыт участников</td><td>объявляет закупку, публикует протокол</td><td>подаёт заявку в ЕИС, получает контракт</td></tr>
+          <tr><td><b>5. Отчёт подрядчика</b></td><td>смотрит фото, оставляет замечания</td><td>принимает акты КС-2, оплачивает этапы</td><td>ведёт график, публикует фотоотчёт</td></tr>
+          <tr><td><b>6. Завершён</b></td><td>оценивает результат, получает возврат остатка</td><td>публикует итоговый отчёт</td><td>несёт гарантийные обязательства</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+mount('cabinet');
+
+const next = param('next');
+const cards = [
+  { k: 'citizen', ic: '🧑‍💼', bg: 'var(--blue-soft)', btn: 'btn-p', h: 'Гражданин', p: 'Житель Обнинска старше 18 лет с подтверждённой учётной записью Госуслуг.',
+    li: ['Подать инициативу и собрать группу', 'Подписать заявку электронно', 'Внести свою долю картой или СБП', 'Следить за стройкой и оценить результат'],
+    btnText: 'Войти через Госуслуги' },
+  { k: 'admin', ic: '🏛️', bg: 'var(--violet-soft)', btn: 'btn-d', h: 'Администрация', p: 'Сотрудник администрации города с ролью куратора инициативного бюджетирования.',
+    li: ['Проверить смету и вынести на комиссию', 'Принять электронный пакет документов', 'Объявить закупку и опубликовать протокол', 'Принять объект и отчитаться перед жителями'],
+    btnText: 'Войти по ведомственной учётной записи' },
+  { k: 'contractor', ic: '🏗️', bg: 'var(--amber-soft)', btn: 'btn-o', h: 'Подрядчик', p: 'Организация, выигравшая закупку по 44-ФЗ. Вход через ЕСИА организации.',
+    li: ['Видеть свои контракты и сроки', 'Загрузить исполнительный график', 'Публиковать фотоотчёт по этапам', 'Отвечать на замечания жителей'],
+    btnText: 'Войти как организация' }
+];
+
+document.getElementById('roles').innerHTML = cards.map(c => `
+  <div class="role">
+    <span class="ic" style="background:${c.bg}">${c.ic}</span>
+    <h3>${c.h}</h3>
+    <p>${c.p}</p>
+    <ul>${c.li.map(x => `<li>${x}</li>`).join('')}</ul>
+    <div class="note note-b" style="font-size:12.5px;padding:10px 12px">${ACCOUNTS[c.k].name} · ${ACCOUNTS[c.k].esia}</div>
+    <button class="btn ${c.btn} btn-full" data-r="${c.k}">${c.btnText}</button>
+  </div>`).join('');
+
+document.querySelectorAll('.role button[data-r]').forEach(b => b.addEventListener('click', () => {
+  State.setRole(b.dataset.r);
+  toast('Вход выполнен: ' + ACCOUNTS[b.dataset.r].name);
+  setTimeout(() => location.href = next ? 'project.html?id=' + next : 'cabinet.html', 700);
+}));
+
+document.getElementById('reset').addEventListener('click', () => {
+  State.reset();
+  toast('Демо-данные сброшены к исходному состоянию');
+  setTimeout(() => location.reload(), 800);
+});
+
+/* Прямая ссылка вида login.html?role=admin */
+const pre = param('role');
+if (pre && ACCOUNTS[pre]) {
+  const el = document.querySelector('.role button[data-r="' + pre + '"]');
+  if (el) { el.closest('.role').style.borderColor = 'var(--blue)'; el.closest('.role').scrollIntoView({ block: 'center' }); }
+}
+</script>
+</body>
+</html>
