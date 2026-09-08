@@ -241,6 +241,7 @@ h4{font-size:17px;letter-spacing:-.01em}
 
 /* ---------- Таймлайн этапов проекта ---------- */
 .steps{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.steps-4{grid-template-columns:repeat(4,1fr)}
 .step{background:var(--bg-2);border-radius:14px;padding:14px;border:1.5px solid transparent}
 .step .k{font-size:11px;font-weight:900;letter-spacing:.1em;color:#93A0BA}
 .step .n{font-size:13.5px;font-weight:700;margin-top:6px;line-height:1.3;color:var(--muted)}
@@ -383,6 +384,7 @@ textarea.inp{min-height:110px;resize:vertical}
   .partners-grid{grid-template-columns:repeat(2,1fr)}
   .ftr-in{grid-template-columns:1fr 1fr}
   .steps{grid-template-columns:repeat(3,1fr)}
+  .steps-4{grid-template-columns:repeat(2,1fr)}
   .mainnav a{padding:8px 9px;font-size:13.5px}
 }
 /* ---------- Партнёры ---------- */
@@ -475,7 +477,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 }
 @media (max-width:560px){
   .g4{grid-template-columns:1fr}
-  .steps{grid-template-columns:repeat(2,1fr)}
+  .steps,.steps-4{grid-template-columns:repeat(2,1fr)}
   .ftr-in{grid-template-columns:1fr}
   .btn-hide,.btn-hide-sm{display:none}
   .hdr-in{gap:12px}
