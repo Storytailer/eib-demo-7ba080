@@ -21,8 +21,9 @@
       <div>
         <span class="eyebrow">Реестр инициативных проектов</span>
         <h2>Проекты города Обнинска</h2>
-        <p class="lead">Фильтр по этапу показывает, что происходит с проектом прямо сейчас:
-          идёт ли сбор и сколько осталось, ушли ли документы, кто ведёт работы.</p>
+        <p class="lead">Здесь видны все проекты города — от свежей заявки жителя до завершённого объекта.
+          Фильтр по этапу показывает, что происходит с проектом прямо сейчас: ждёт ли он решения
+          администрации, идёт ли сбор подписей или средств, кто ведёт работы.</p>
       </div>
       <a class="btn btn-p" href="create.html">Предложить проект</a>
     </div>
@@ -47,14 +48,14 @@
 mount("projects");
 document.querySelector(".eyebrow").textContent = "Реестр инициативных проектов · " + CITY.year + " год";
 
-const all = DB.projects({ public: true });
+const all = visibleProjects();
 const totalRaised = all.reduce((s, p) => s + DB.raised(p.id), 0);
 const totalCost = all.reduce((s, p) => s + p.cost, 0);
 const donors = all.reduce((s, p) => s + DB.donors(p.id), 0);
 const signs = all.reduce((s, p) => s + DB.signatures(p.id).length, 0);
 
 document.getElementById("kpis").innerHTML = `
-  <div class="kpi b"><b>${all.length}</b><span>проектов в публичном реестре</span></div>
+  <div class="kpi b"><b>${all.length}</b><span>проектов в реестре, включая заявки на рассмотрении</span></div>
   <div class="kpi g"><b>${rub(totalRaised)}</b><span>внесли жители онлайн</span></div>
   <div class="kpi a"><b>${rub(totalCost)}</b><span>общая стоимость проектов</span></div>
   <div class="kpi v"><b>${donors}</b><span>плательщиков и ${signs} электронных подписей</span></div>`;

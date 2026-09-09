@@ -225,11 +225,11 @@
 mount('home');
 
 /* Цифры считаются из базы, а не из статичных констант */
-const pub = DB.projects({ public: true });
+const pub = visibleProjects();
 const raisedAll = DB.all('transactions').filter(t => t.status === 'confirmed').reduce((s, t) => s + t.amount, 0);
 document.getElementById('s1').textContent = DB.projects().length;
 document.getElementById('s2').textContent = pub.length;
-document.getElementById('s3').textContent = (raisedAll / 1000000).toFixed(2).replace('.', ',') + ' млн ₽';
+document.getElementById('s3').textContent = rubShort(raisedAll);
 document.getElementById('s4').textContent = fmt(DB.all('signatures').length);
 
 /* Карточка активного сбора в герое */
@@ -269,9 +269,10 @@ document.getElementById('tiles').innerHTML = [
 
 /* Проекты */
 document.getElementById('collecting').innerHTML =
-  pub.filter(p => ['collecting', 'goal', 'signing'].includes(p.status)).slice(0, 3).map(projectCard).join('');
+  pub.filter(p => ['collecting', 'goal'].includes(p.status)).slice(0, 3).map(projectCard).join('');
 document.getElementById('pipeline').innerHTML =
-  pub.filter(p => ['documents', 'procurement', 'works', 'reporting', 'done'].includes(p.status)).slice(0, 3).map(projectCard).join('');
+  pub.filter(p => ['submitted', 'review', 'signing', 'documents', 'procurement', 'works', 'reporting', 'done']
+    .includes(p.status)).slice(0, 3).map(projectCard).join('');
 </script>
 </body>
 </html>

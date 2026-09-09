@@ -7,7 +7,7 @@
    при первом запуске: статичные проекты разворачиваются в записи БД —
    транзакции, подписи, события хроники, заявки на торги, отчёты и замечания. */
 
-const DB_KEY = 'eib-db-v3';
+const DB_KEY = 'eib-db-v4';
 
 /* ---------------- Статусы жизненного цикла ---------------- */
 const STATUS = {
@@ -154,6 +154,7 @@ const DB = {
           curator: p.works.curator, publicCheck: p.works.publicCheck } : null,
         plan_items: p.works ? p.works.plan.map(x => ({ id: uid('pl'), ...x })) : [],
         report: p.report || null,
+        createdByRole: 'citizen',
         createdAt: daysAgo(120 - pi * 8)
       });
 
@@ -272,6 +273,197 @@ const DB = {
           });
         });
       }
+    });
+
+
+    /* ---------------------------------------------------------------
+       Чистые демо-проекты — чтобы можно было проверить каждую механику
+       с нуля: подписать, вложить деньги, подать заявку на торги,
+       оставить замечание по работам, рассмотреть заявку в администрации.
+    --------------------------------------------------------------- */
+    const blank = (o) => Object.assign({
+      cover: 'cv-1', signNeed: 10, sharePct: 10, smetaApproved: true,
+      idea: '', plan: '', docs: [], docsPack: null, tender: null, contract: null,
+      plan_items: [], report: null, deadline: 'по решению комиссии', daysLeft: null,
+      createdAt: daysAgo(12), createdByRole: 'citizen'
+    }, o);
+
+    db.projects.push(blank({
+      id: 'demo-signing',
+      title: 'Сквер у Дома культуры «Юбилейный»',
+      cat: 'Благоустройство', cover: 'cv-2',
+      addr: 'ул. Гурьянова, 13 — сквер у Дома культуры',
+      district: 'Мкрн 51',
+      summary: 'Дорожки, освещение и скамейки в сквере у Дома культуры — сейчас идёт сбор подписей жителей.',
+      problem: 'Сквер зарос, дорожки разбиты, вечером нет освещения. Через сквер ходят к Дому культуры и школе.',
+      result: 'Прогулочная зона 0,4 га: 220 м дорожек, 14 фонарей, 10 скамеек.',
+      ownerId: 'u-r2', ownerName: 'Светлана П.', groupNote: 'инициативная группа жителей мкрн 51',
+      cost: 1180000, goal: 118000,
+      status: 'signing',
+      smeta: [
+        { id: uid('sm'), t: 'Устройство дорожек', q: 220, u: 2900, unit: 'м²', by: 'admin' },
+        { id: uid('sm'), t: 'Опоры освещения', q: 14, u: 19500, unit: 'шт.', by: 'admin' },
+        { id: uid('sm'), t: 'Скамьи с урнами', q: 10, u: 14400, unit: 'компл.', by: 'admin' },
+        { id: uid('sm'), t: 'Газон и посадки', q: 1, u: 128000, unit: 'компл.', by: 'admin' }
+      ]
+    }));
+
+    db.projects.push(blank({
+      id: 'demo-collecting',
+      title: 'Тёплая остановка на ул. Победы',
+      cat: 'Благоустройство', cover: 'cv-5',
+      addr: 'ул. Победы, остановка «Поликлиника»',
+      district: 'Центр',
+      summary: 'Закрытый павильон с подогревом и освещением на остановке у поликлиники — открыт сбор средств.',
+      problem: 'На остановке нет укрытия, зимой люди ждут автобус на ветру. Рядом поликлиника и два дома престарелых.',
+      result: 'Тёплый павильон на 12 мест, освещение, электронное табло, урны.',
+      ownerId: 'u-r6', ownerName: 'Екатерина Л.', groupNote: 'совет дома ул. Победы, 8',
+      cost: 940000, goal: 94000,
+      status: 'collecting', deadline: 'через 40 рабочих дней', daysLeft: 34,
+      smeta: [
+        { id: uid('sm'), t: 'Павильон закрытого типа', q: 1, u: 620000, unit: 'шт.', by: 'admin' },
+        { id: uid('sm'), t: 'Подогрев и электрика', q: 1, u: 184000, unit: 'компл.', by: 'admin' },
+        { id: uid('sm'), t: 'Основание и монтаж', q: 1, u: 136000, unit: 'компл.', by: 'admin' }
+      ]
+    }));
+
+    db.projects.push(blank({
+      id: 'demo-tender',
+      title: 'Лестница к парку «Белкино»',
+      cat: 'Благоустройство', cover: 'cv-4',
+      addr: 'спуск от ул. Борисоглебской к парку «Белкино»',
+      district: 'Мкрн 51',
+      summary: 'Новая лестница из 64 ступеней с перилами и освещением. Средства собраны, объявлены торги — заявок пока нет.',
+      problem: 'Ступени просели и обрушились на трёх участках, перил нет. Зимой спуск опасен.',
+      result: 'Лестница 64 ступени, двусторонние перила, 8 светильников, площадка отдыха.',
+      ownerId: 'u-r10', ownerName: 'Юлия Н.', groupNote: 'инициативная группа жителей мкрн 51',
+      cost: 980000, goal: 98000,
+      status: 'procurement', deadline: 'сбор закрыт',
+      smeta: [
+        { id: uid('sm'), t: 'Демонтаж лестницы', q: 1, u: 84000, unit: 'компл.', by: 'admin' },
+        { id: uid('sm'), t: 'Лестничный марш, 64 ступени', q: 64, u: 8600, unit: 'ступень', by: 'admin' },
+        { id: uid('sm'), t: 'Перила двусторонние', q: 48, u: 4200, unit: 'м', by: 'admin' },
+        { id: uid('sm'), t: 'Освещение', q: 8, u: 16400, unit: 'шт.', by: 'admin' },
+        { id: uid('sm'), t: 'Площадка отдыха', q: 1, u: 62800, unit: 'компл.', by: 'admin' }
+      ],
+      docsPack: {
+        sentAt: dateTimeRU(daysAgo(9)), channel: 'ЕСИА → СЭД администрации г. Обнинска',
+        incoming: 'вх. № 4390-ИБ', deadline: 'принято', status: 'Принято администрацией'
+      },
+      tender: {
+        number: '0137300012826000501', law: '44-ФЗ, электронный аукцион',
+        platform: 'ЕИС / РТС-тендер', nmck: 980000,
+        published: dateRU(daysAgo(6)), bidsUntil: 'через 8 дней', auctionAt: 'через 11 дней',
+        term: '45 календарных дней с даты контракта', open: true
+      }
+    }));
+
+    db.projects.push(blank({
+      id: 'demo-works',
+      title: 'Тротуар у поликлиники на ул. Аксёнова',
+      cat: 'Дороги и тротуары', cover: 'cv-3',
+      addr: 'ул. Аксёнова, участок от д. 4 до поликлиники',
+      district: 'Мкрн 38',
+      summary: 'Ремонт 260 м тротуара с пандусами. Работы идут — можно посмотреть отчёты и оставить замечание.',
+      problem: 'Покрытие разрушено, к поликлинике не проехать с коляской и на кресле-коляске.',
+      result: '260 м тротуара шириной 2 м, 4 занижения бордюра, 2 пандуса, тактильная плитка.',
+      ownerId: 'u-r13', ownerName: 'Алексей З.', groupNote: 'совет дома ул. Аксёнова, 4',
+      cost: 1240000, goal: 124000,
+      status: 'works', deadline: 'сбор закрыт',
+      smeta: [
+        { id: uid('sm'), t: 'Демонтаж покрытия', q: 260, u: 780, unit: 'м', by: 'admin' },
+        { id: uid('sm'), t: 'Основание', q: 520, u: 640, unit: 'м²', by: 'admin' },
+        { id: uid('sm'), t: 'Асфальтобетонное покрытие', q: 520, u: 1180, unit: 'м²', by: 'admin' },
+        { id: uid('sm'), t: 'Пандусы и тактильная плитка', q: 1, u: 118000, unit: 'компл.', by: 'admin' }
+      ],
+      tender: {
+        number: '0137300012826000488', law: '44-ФЗ, электронный аукцион',
+        platform: 'ЕИС / РТС-тендер', nmck: 1240000,
+        published: dateRU(daysAgo(40)), bidsUntil: 'приём закрыт', auctionAt: dateRU(daysAgo(28)),
+        term: '40 календарных дней с даты контракта', open: false
+      },
+      contract: {
+        number: '№ 52-МК/2026', contractorId: 'u-c2', sum: 1128000, paid: 282000,
+        start: dateRU(daysAgo(20)), finish: 'через 3 недели',
+        curator: 'Отдел благоустройства администрации г. Обнинска',
+        publicCheck: '2 общественных инспектора от инициативной группы'
+      },
+      plan_items: [
+        { id: uid('pl'), t: 'Демонтаж старого покрытия', p: 100, st: 'done', d: 'этап 1' },
+        { id: uid('pl'), t: 'Устройство основания', p: 60, st: 'now', d: 'этап 2' },
+        { id: uid('pl'), t: 'Укладка покрытия', p: 0, st: 'wait', d: 'этап 3' },
+        { id: uid('pl'), t: 'Пандусы и сдача объекта', p: 0, st: 'wait', d: 'этап 4' }
+      ]
+    }));
+
+    db.projects.push(blank({
+      id: 'demo-inbox',
+      title: 'Освещение дорожки к детскому саду № 21',
+      cat: 'Освещение', cover: 'cv-1',
+      addr: 'ул. Курчатова, проход между домами 45 и 47',
+      district: 'Центр',
+      summary: 'Заявка жителя ждёт рассмотрения администрации — можно посмотреть, как работает проверка и смета.',
+      problem: 'Дорожку к детскому саду не освещают, утром и вечером родители с детьми идут в темноте.',
+      result: '8 светильников на опорах, 180 м освещённой дорожки.',
+      idea: 'Поставить фонари на дорожке к детскому саду № 21 — утром и вечером там совсем темно',
+      ownerId: 'u-citizen', ownerName: 'Мария К.', groupNote: 'инициативная группа жителей',
+      cost: 314400, goal: 31440, smetaApproved: false,
+      status: 'submitted', createdAt: daysAgo(2),
+      smeta: [
+        { id: uid('sm'), t: 'Светильник на опоре', q: 8, u: 22000, unit: 'шт.', by: 'citizen' },
+        { id: uid('sm'), t: 'Монтаж и подключение', q: 8, u: 4300, unit: 'шт.', by: 'citizen' },
+        { id: uid('sm'), t: 'Прокладка кабеля', q: 108, u: 950, unit: 'м', by: 'citizen' }
+      ]
+    }));
+
+    /* Хроника и связанные записи для чистых проектов */
+    db.events.push(
+      { id: uid('ev'), projectId: 'demo-signing', date: daysAgo(11), actor: 'администрация',
+        title: 'Проект опубликован', text: 'Заявка одобрена комиссией, открыт сбор подписей жителей.' },
+      { id: uid('ev'), projectId: 'demo-collecting', date: daysAgo(9), actor: 'администрация',
+        title: 'Открыт сбор средств', text: 'Набрано 10 подписей, договор подписан, срок сбора — 40 рабочих дней.' },
+      { id: uid('ev'), projectId: 'demo-tender', date: daysAgo(6), actor: 'администрация',
+        title: 'Объявлены торги по 44-ФЗ', text: 'Средства жителей зачислены в бюджет, опубликовано извещение № 0137300012826000501.' },
+      { id: uid('ev'), projectId: 'demo-works', date: daysAgo(20), actor: 'подрядчик',
+        title: 'Работы начаты', text: 'ООО «Обнинскстройсервис» приступило к демонтажу старого покрытия.' },
+      { id: uid('ev'), projectId: 'demo-inbox', date: daysAgo(2), actor: 'житель',
+        title: 'Заявка отправлена в администрацию', text: 'Житель Мария К. отправила заявку на рассмотрение.' }
+    );
+
+    /* Подписи и деньги для чистых проектов */
+    for (let i = 0; i < 4; i++) db.signatures.push({
+      id: uid('sg'), projectId: 'demo-signing', userId: 'u-r' + i, userName: NAMES[i], date: daysAgo(10 - i)
+    });
+    for (let i = 0; i < 10; i++) db.signatures.push({
+      id: uid('sg'), projectId: 'demo-collecting', userId: 'u-r' + i, userName: NAMES[i], date: daysAgo(14 - i * 0.3)
+    });
+    ['demo-tender', 'demo-works'].forEach(pid => {
+      for (let i = 0; i < 12; i++) db.signatures.push({
+        id: uid('sg'), projectId: pid, userId: 'u-r' + i, userName: NAMES[i], date: daysAgo(50 - i)
+      });
+    });
+    [['demo-collecting', [3000, 2000, 5000, 1000, 1500]],
+     ['demo-tender', [20000, 30000, 25000, 23000]],
+     ['demo-works', [30000, 40000, 34000, 20000]]].forEach(([pid, sums]) => {
+      sums.forEach((amount, i) => db.transactions.push({
+        id: uid('tx'), no: 'TX-' + (2026500 + Math.floor(Math.random() * 400)),
+        projectId: pid, userId: 'u-r' + (i + 2), userName: NAMES[i + 2],
+        amount, date: daysAgo(20 - i), method: i % 2 ? 'СБП' : 'карта', status: 'confirmed'
+      }));
+    });
+
+    /* Отчёт подрядчика по проекту в работе */
+    db.reports.push({
+      id: uid('rp'), projectId: 'demo-works', contractorId: 'u-c2',
+      stage: 'Демонтаж старого покрытия',
+      workDate: daysAgo(14), sentAt: daysAgo(13),
+      text: 'Снято 260 м старого покрытия, вывезено 18 т строительного мусора.',
+      photos: [
+        { id: uid('ph'), caption: 'Тротуар до начала работ', css: 'linear-gradient(135deg,#7a8ba6,#3d4e6b)', kind: 'before' },
+        { id: uid('ph'), caption: 'Покрытие снято, площадка расчищена', css: 'linear-gradient(135deg,#a08b6a,#5d4a2e)', kind: 'progress' }
+      ],
+      docs: [{ id: uid('dc'), name: 'Акт КС-2 № 1.pdf', size: '210 КБ' }],
+      status: 'accepted'
     });
 
     /* Одно замечание, ожидающее модерации — чтобы админ мог его обработать */
@@ -639,7 +831,8 @@ const DB = {
       cost: data.cost || 0, sharePct: data.sharePct || 10, goal: Math.round((data.cost || 0) * (data.sharePct || 10) / 100),
       signNeed: 10, deadline: 'после одобрения', daysLeft: null,
       smeta: data.smeta || [], smetaApproved: false,
-      status: 'draft', docs: [], docsPack: null, tender: null, contract: null,
+      status: 'draft', createdByRole: (u ? u.role : 'citizen'),
+      docs: [], docsPack: null, tender: null, contract: null,
       plan_items: [], report: null, createdAt: nowISO()
     };
     this.data.projects.push(p);

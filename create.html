@@ -19,9 +19,9 @@
     <div class="crumbs"><a href="index.html">Главная</a> → Предложить проект</div>
     <div class="between">
       <div style="max-width:730px">
-        <span class="eyebrow">Заявка жителя · 4 шага</span>
-        <h2 class="mt8">Расскажите, что нужно вашему двору или улице</h2>
-        <p class="lead mt8">Смету составлять не нужно. Опишите проблему обычными словами — платформа
+        <span class="eyebrow" id="hEyebrow">Заявка жителя · 4 шага</span>
+        <h2 class="mt8" id="hTitle">Расскажите, что нужно вашему двору или улице</h2>
+        <p class="lead mt8" id="hLead">Смету составлять не нужно. Опишите проблему обычными словами — платформа
           поможет собрать заявку, а статьи расходов сформирует и проверит специалист администрации.</p>
       </div>
       <div class="facts facts-side">
@@ -277,9 +277,9 @@ function collect() {
 }
 
 function saveDraft(silent) {
-  if (!Session.is('citizen')) {
+  if (!Session.user) {
     Intent.set(location.pathname + location.search, 'draft');
-    toast('Чтобы сохранить черновик, нужен вход через Госуслуги');
+    toast('Чтобы сохранить черновик, нужен вход');
     setTimeout(() => location.href = 'login.html?role=citizen&next=create.html', 900);
     return null;
   }
@@ -383,7 +383,7 @@ function drawPreview() {
 
 /* ---------- Мои проекты (черновики) ---------- */
 function drawMy() {
-  if (!Session.is('citizen')) { F('myList').innerHTML = '<p class="muted">Войдите, чтобы сохранять черновики.</p>'; return; }
+  if (!Session.user) { F('myList').innerHTML = '<p class="muted">Войдите, чтобы сохранять черновики.</p>'; return; }
   const mine = DB.projects({ owner: Session.userId });
   F('myList').innerHTML = mine.length ? mine.map(m => `
     <div class="doc"><span class="ic ${m.status === 'draft' ? 'wait' : 'ok'}">${m.status === 'draft' ? '✎' : '✓'}</span>
@@ -409,9 +409,9 @@ function drawHints() {
 
 /* ---------- Отправка ---------- */
 F('send').addEventListener('click', () => {
-  if (!Session.is('citizen')) {
+  if (!Session.user) {
     Intent.set(location.pathname + location.search, 'submit');
-    toast('Для отправки заявки нужен вход через Госуслуги');
+    toast('Для отправки заявки нужен вход');
     setTimeout(() => location.href = 'login.html?role=citizen&next=create.html' + (draftId ? '?id=' + draftId : ''), 900);
     return;
   }
@@ -420,11 +420,25 @@ F('send').addEventListener('click', () => {
   if (!d.title) { step = 2; drawSteps(); toast('Добавьте название проекта'); return; }
   if (!d.problem || !d.result) { step = 2; drawSteps(); toast('Заполните проблему и результат'); return; }
   const id = saveDraft(true);
-  DB.setStatus(id, 'submitted', {
-    actor: 'житель', title: 'Заявка отправлена в администрацию',
-    text: 'Житель ' + Session.user.name + ' отправил заявку. Ориентировочная стоимость по оценке жителя: ' + rub(d.cost) + '.'
-  });
-  toast('Заявка отправлена — она уже в очереди администрации');
+  const role = Session.role;
+  if (role === 'admin') {
+    /* Проект администрации: сразу на внутреннюю проверку, публикуется вручную */
+    DB.updateProject(id, { smetaApproved: true });
+    DB.setStatus(id, 'review', {
+      actor: 'администрация', title: 'Проект создан администрацией',
+      text: 'Проект внесён сотрудником администрации (' + Session.user.name + ') и поставлен на проверку. ' +
+        'Он появится в общем реестре со статусом «На проверке» и будет опубликован после решения.'
+    });
+    toast('Проект создан. Опубликуйте его на карточке проекта');
+  } else {
+    DB.setStatus(id, 'submitted', {
+      actor: role === 'contractor' ? 'подрядчик' : 'житель',
+      title: 'Заявка отправлена в администрацию',
+      text: (role === 'contractor' ? 'Организация ' : 'Житель ') + Session.user.name +
+        ' отправил(а) заявку. Ориентировочная стоимость по оценке заявителя: ' + rub(d.cost) + '.'
+    });
+    toast('Заявка отправлена — она уже в очереди администрации');
+  }
   setTimeout(() => location.href = 'project.html?id=' + id, 1200);
 });
 F('saveDraft').addEventListener('click', () => saveDraft());
@@ -453,6 +467,24 @@ if (draftId) {
     });
   }
 }
+
+/* Заголовки под роль: житель предлагает идею, администрация вносит проект сама */
+(function roleUi() {
+  const r = Session.role;
+  if (r === 'admin') {
+    F('hEyebrow').textContent = 'Проект администрации · 4 шага';
+    F('hTitle').textContent = 'Внесение проекта администрацией';
+    F('hLead').textContent = 'Администрация может внести проект сама — например, по обращениям жителей ' +
+      'или по итогам обхода территории. После создания проект проходит внутреннюю проверку и публикуется вручную, ' +
+      'а не появляется в реестре автоматически.';
+    F('send').textContent = 'Создать и отправить на проверку';
+  } else if (r === 'contractor') {
+    F('hEyebrow').textContent = 'Предложение организации · 4 шага';
+    F('hTitle').textContent = 'Предложить проект городу';
+    F('hLead').textContent = 'Организация может предложить проект — он попадёт в ту же очередь ' +
+      'на рассмотрение администрации, что и заявки жителей.';
+  }
+})();
 
 drawSteps(); drawCatalog(); drawHints(); syncPreview(); drawMy();
 </script>

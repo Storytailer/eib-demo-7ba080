@@ -62,7 +62,9 @@ head.innerHTML = `<div class="crumbs"><a href="index.html">Главная</a> �
     </div>
     <div class="flexr">
       ${acc.role === 'citizen' ? '<a class="btn btn-p" href="create.html">Предложить проект</a>' : ''}
-      ${acc.role === 'contractor' ? '<a class="btn btn-p" href="tender.html">Открытые торги</a>' : ''}
+      ${acc.role === 'admin' ? '<a class="btn btn-p" href="create.html">Создать проект от администрации</a>' : ''}
+      ${acc.role === 'contractor' ? '<a class="btn btn-p" href="create.html">Предложить проект</a>' : ''}
+      ${acc.role === 'contractor' ? '<a class="btn btn-o" href="tender.html">Открытые торги</a>' : ''}
       <a class="btn btn-o" href="projects.html">Все проекты города</a>
     </div>
   </div>`;
@@ -87,9 +89,9 @@ if (acc.role === 'citizen') {
     task('✎', 'wait', 'Черновик не отправлен', esc(p.title) + ' — продолжите заполнение и отправьте заявку', 'Продолжить', 'create.html?id=' + p.id)));
   mine.filter(p => p.status === 'rework').forEach(p => tasks.push(
     task('↩', 'wait', 'Заявка возвращена на доработку', esc(p.title) + ' — ' + esc(p.adminComment || 'см. комментарий администрации'), 'Доработать', 'create.html?id=' + p.id)));
-  DB.projects({ public: true }).filter(p => p.status === 'signing' && !DB.hasSigned(p.id, acc.id)).slice(0, 2).forEach(p => tasks.push(
+  visibleProjects().filter(p => p.status === 'signing' && !DB.hasSigned(p.id, acc.id)).slice(0, 2).forEach(p => tasks.push(
     task('✍️', '', 'Идёт сбор подписей', esc(p.title) + ' — ' + DB.signatures(p.id).length + ' из ' + p.signNeed, 'Подписать', 'project.html?id=' + p.id)));
-  DB.projects({ public: true }).filter(p => p.status === 'collecting').slice(0, 2).forEach(p => tasks.push(
+  visibleProjects().filter(p => p.status === 'collecting').slice(0, 2).forEach(p => tasks.push(
     task('💳', '', 'Идёт сбор средств', esc(p.title) + ' — осталось ' + rub(DB.leftToRaise(p.id)), 'Поддержать', 'project.html?id=' + p.id)));
 
   const groups = [
@@ -101,7 +103,7 @@ if (acc.role === 'citizen') {
 
   body.innerHTML = kpi([
     [mine.length, plural(mine.length, 'ваш проект', 'ваших проекта', 'ваших проектов') + ' на платформе', 'b'],
-    [rub(paid), 'вы вложили в проекты города', 'g'],
+    [rubShort(paid), 'вы вложили в проекты города', 'g'],
     [supported.length, plural(supported.length, 'поддержанный проект', 'поддержанных проекта', 'поддержанных проектов'), 'v'],
     [mySigns.length, plural(mySigns.length, 'подпись', 'подписи', 'подписей') + ' через ЕСИА', 'a']
   ]) + `
@@ -199,7 +201,7 @@ if (acc.role === 'citizen') {
       </div>
       <div class="card">
         <h3 class="mb14">Куда ещё вложиться</h3>
-        ${DB.projects({ public: true }).filter(p => p.status === 'collecting').map(p => `
+        ${visibleProjects().filter(p => p.status === 'collecting').map(p => `
           <div class="doc"><span class="ic">💳</span>
             <div class="tx"><b>${plink(p)}</b><small>осталось ${rub(DB.leftToRaise(p.id))} · ${DB.progress(p.id)}%</small></div>
             <div class="act"><a class="btn btn-p btn-s" href="project.html?id=${p.id}">Поддержать</a></div></div>`).join('')
@@ -230,8 +232,13 @@ if (acc.role === 'admin') {
   ]) + `
   <div class="grid g2" style="align-items:start">
     <div>
-      <div class="card">
-        <div class="card-h"><h3>Очередь заявок</h3><span class="chip chip-amber">${inbox.length}</span></div>
+      ${inbox.length ? `<div class="note note-a mb20" style="font-size:15px">
+        <b>Новые заявки от жителей: ${inbox.length}.</b> Их нужно рассмотреть — проверить данные,
+        сформировать смету и вынести решение. Заявки видны в реестре проектов со статусом
+        «Заявка подана» / «На проверке», пока они не одобрены и не опубликованы.
+      </div>` : ''}
+      <div class="card" id="inbox">
+        <div class="card-h"><h3>Заявки на рассмотрение</h3><span class="chip chip-amber">${inbox.length}</span></div>
         <p class="muted mb20">Заявки жителей: проверка данных, формирование сметы и решение —
           одобрить, вернуть на доработку или отклонить с обоснованием.</p>
         <div class="tbl-wrap"><table class="tbl">
@@ -309,7 +316,7 @@ if (acc.role === 'admin') {
         <h3 class="mb14">Сводка по городу</h3>
         <div class="facts">
           <div><span>Проектов в реестре</span><b>${all.length}</b></div>
-          <div><span>Собрано жителями</span><b>${rub(raised)}</b></div>
+          <div><span>Собрано жителями</span><b>${rubShort(raised)}</b></div>
           <div><span>Подписей</span><b>${DB.all('signatures').length}</b></div>
           <div><span>Транзакций</span><b>${DB.all('transactions').length}</b></div>
           <div><span>Торгов открыто</span><b>${proc.length}</b></div>
@@ -351,7 +358,7 @@ if (acc.role === 'contractor') {
 
   body.innerHTML = kpi([
     [myProjects.length, plural(myProjects.length, 'контракт', 'контракта', 'контрактов') + ' на платформе', 'b'],
-    [rub(sum), 'общая цена контрактов', 'g'],
+    [rubShort(sum), 'общая цена контрактов', 'g'],
     [myReports.length, plural(myReports.length, 'отчёт отправлен', 'отчёта отправлено', 'отчётов отправлено'), 'a'],
     [issues, plural(issues, 'замечание', 'замечания', 'замечаний') + ' от жителей', 'r']
   ]) + `

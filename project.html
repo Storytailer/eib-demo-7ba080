@@ -44,12 +44,14 @@
   </div>
   <div class="field">
     <label>Своя сумма, ₽</label>
-    <input class="inp" id="paySum" type="number" min="1" value="500">
-    <div class="hint">Минимальный взнос — 1 ₽. Каждый платёж записывается отдельной транзакцией.</div>
+    <input class="inp" id="paySum" inputmode="numeric" autocomplete="off" value="500">
+    <div class="hint" id="paySumHint">Только цифры. Минимальный взнос — 10 ₽, каждый платёж
+      записывается отдельной транзакцией.</div>
   </div>
-  <div class="note note-b mb20">Платформа сформирует <b>договор пожертвования</b> и <b>кассовый чек</b>,
+  <div class="note note-b mb20">Платформа сформирует <b>договор пожертвования</b> и <b>банковскую квитанцию</b>,
     средства поступят в бюджет города по реквизитам договора (п. 8.2 Положения № 05-22).
-    Если проект не будет реализован — взнос возвращается (ст. 70 ФЗ-33).</div>
+    Если проект не реализуют или останется неиспользованный остаток — деньги вернут плательщикам
+    (ч. 3 ст. 70 ФЗ № 33-ФЗ).</div>
   <button class="btn btn-p btn-full" id="payGo">Оплатить картой или СБП</button>
 </div></div>
 
@@ -131,6 +133,19 @@ if (Session.userId) DB.trackView(Session.userId, p.id);
 
 const reload = () => { p = DB.project(p.id); redraw(); };
 
+/* Что уже сделал текущий пользователь по этому проекту */
+function myPart() {
+  if (!Session.userId) return '—';
+  const signed = DB.hasSigned(p.id, Session.userId);
+  const paid = DB.tx(p.id).filter(t => t.userId === Session.userId && t.status === 'confirmed')
+    .reduce((s, t) => s + t.amount, 0);
+  const bits = [];
+  if (signed) bits.push('подпись');
+  if (paid) bits.push('взнос ' + rub(paid));
+  if (p.ownerId === Session.userId) bits.unshift('вы автор');
+  return bits.length ? bits.join(' · ') : 'пока не участвуете';
+}
+
 /* ---------------- Шапка ---------------- */
 function drawHead() {
   const st = statusOf(p);
@@ -153,6 +168,7 @@ function drawHead() {
         <div><span>Доля жителей</span><b>${p.sharePct}% · ${rub(p.goal)}</b></div>
         <div><span>Собрано</span><b>${rub(raised)}</b></div>
         <div><span>Подписей</span><b>${DB.signatures(p.id).length} из ${p.signNeed}</b></div>
+        ${Session.userId ? `<div><span>Ваше участие</span><b>${myPart()}</b></div>` : ''}
       </div>
     </div>`;
 }
@@ -213,7 +229,7 @@ function paneOverview() {
       <p class="muted mb20">Каждое действие в системе — от создания черновика до итогового отчёта —
         записывается с датой, автором и описанием.</p>
       <div class="tl">
-        ${ev.map(e => `<div class="tl-item">
+        ${ev.slice(0, 4).map(e => `<div class="tl-item">
           <span class="tl-dot">${icon[e.actor] || '•'}</span>
           <div class="tl-body">
             <div class="tl-head"><b>${esc(e.title)}</b><span>${dateTimeRU(e.date)}</span></div>
@@ -222,6 +238,19 @@ function paneOverview() {
           </div>
         </div>`).join('')}
       </div>
+      ${ev.length > 4 ? `<details class="acc mt14">
+        <summary>Показать всю хронику<span class="tag">ещё ${ev.length - 4}</span></summary>
+        <div class="acc-body"><div class="tl">
+          ${ev.slice(4).map(e => `<div class="tl-item">
+            <span class="tl-dot">${icon[e.actor] || '•'}</span>
+            <div class="tl-body">
+              <div class="tl-head"><b>${esc(e.title)}</b><span>${dateTimeRU(e.date)}</span></div>
+              <p>${esc(e.text)}</p>
+              <small class="muted">${esc(e.actor)}</small>
+            </div>
+          </div>`).join('')}
+        </div></div>
+      </details>` : ''}
     </div>`;
 }
 
@@ -322,14 +351,49 @@ function paneMoney() {
     <div class="money"><b>${rub(raised)}</b><span>цель ${rub(p.goal)}</span></div>
     <div class="bar bar-lg mt8 ${pct >= 100 ? 'ok' : ''}"><i style="width:${pct}%"></i></div>
     <div class="grid g4 mt20">
-      <div class="kpi g"><b>${rub(raised)}</b><span>собрано (подтверждённые поступления)</span></div>
-      <div class="kpi a"><b>${rub(left)}</b><span>осталось собрать</span></div>
+      <div class="kpi g"><b>${rubShort(raised)}</b><span>собрано (подтверждённые поступления)</span></div>
+      <div class="kpi a"><b>${rubShort(left)}</b><span>осталось собрать</span></div>
       <div class="kpi b"><b>${DB.donors(p.id)}</b><span>${plural(DB.donors(p.id), 'человек принял участие', 'человека приняли участие', 'человек приняли участие')}</span></div>
       <div class="kpi v"><b>${conf.length}</b><span>подтверждённых транзакций</span></div>
     </div>
     <div class="note note-b mt20">Прогресс считается как сумма всех подтверждённых поступлений,
       делённая на необходимую сумму. Отменённые, неуспешные и ещё не подтверждённые платежи
       в прогресс не входят — они видны в таблице ниже со своим статусом.</div>
+
+    <details class="acc mt20">
+      <summary>Куда идут деньги и что будет с остатком<span class="tag">правовая справка</span></summary>
+      <div class="acc-body">
+        <p><b>Куда поступает взнос.</b> Инициативный платёж — это добровольный денежный взнос гражданина
+        или организации, который поступает <b>напрямую в бюджет города</b> на реализацию конкретного
+        проекта (ч. 2 ст. 70 Федерального закона № 33-ФЗ). В Бюджетном кодексе такие поступления
+        отнесены к неналоговым доходам местного бюджета (ст. 41 БК РФ). Платформа деньги у себя не держит:
+        они идут транзитом через банк-эквайер по реквизитам договора о реализации проекта.</p>
+
+        <p><b>Что подтверждает платёж.</b> Договор пожертвования, сформированный платформой,
+        банковская квитанция об оплате и запись в публичном реестре взносов по проекту.
+        Взнос в бюджет не является расчётом за товар или услугу, поэтому кассовый чек по 54-ФЗ
+        для него не оформляется.</p>
+
+        <p><b>Проект не реализован.</b> Инициативные платежи подлежат возврату лицам, которые их внесли
+        (ч. 3 ст. 70 ФЗ № 33-ФЗ; ранее — ч. 3 ст. 56.1 ФЗ № 131-ФЗ). На платформе это видно как перевод
+        всех подтверждённых транзакций проекта в статус «возвращён».</p>
+
+        <p><b>Остался излишек после реализации.</b> Если по итогам реализации образовался остаток
+        инициативных платежей, не использованных на проект, он <b>тоже возвращается плательщикам</b> —
+        это прямая норма ч. 3 ст. 70. Возврат считается пропорционально внесённым суммам.</p>
+
+        <p><b>Экономия на торгах — не то же самое.</b> Если подрядчик выиграл аукцион дешевле НМЦК,
+        экономия образуется по бюджетной части контракта и остаётся в бюджете города; возврату
+        плательщикам подлежит именно неиспользованный остаток инициативных платежей.</p>
+
+        <p><b>Кто устанавливает порядок возврата.</b> Порядок расчёта и возврата сумм инициативных платежей
+        определяется нормативным правовым актом представительного органа муниципального образования
+        (ч. 4 ст. 70) — для Обнинска это решение городского Собрания (Положение № 05-22).</p>
+
+        <span class="law">Источники: ст. 70 ФЗ от 20.03.2025 № 33-ФЗ; ст. 56.1 ФЗ от 06.10.2003 № 131-ФЗ;
+        ст. 41 Бюджетного кодекса РФ; Положение г. Обнинска № 05-22.</span>
+      </div>
+    </details>
   </div>
 
   <div class="card">
@@ -522,10 +586,10 @@ function paneReport() {
   return `<div class="card">
     <div class="card-h"><h3>Итоговый отчёт</h3><span class="chip chip-green"><span class="dt"></span>Проект завершён</span></div>
     <div class="grid g4 mb20">
-      <div class="kpi g"><b>${rub(r.citizens)}</b><span>вложили жители</span></div>
-      <div class="kpi b"><b>${rub(r.cityBudget)}</b><span>бюджет города</span></div>
-      <div class="kpi v"><b>${rub(r.regionSubsidy)}</b><span>субсидия области</span></div>
-      <div class="kpi a"><b>${rub(r.rest)}</b><span>экономия по итогам торгов</span></div>
+      <div class="kpi g"><b>${rubShort(r.citizens)}</b><span>вложили жители</span></div>
+      <div class="kpi b"><b>${rubShort(r.cityBudget)}</b><span>бюджет города</span></div>
+      <div class="kpi v"><b>${rubShort(r.regionSubsidy)}</b><span>субсидия области</span></div>
+      <div class="kpi a"><b>${rubShort(r.rest)}</b><span>экономия по итогам торгов</span></div>
     </div>
     <div class="facts">
       <div><span>Объект открыт</span><b>${esc(r.openedAt)}</b></div>
@@ -537,6 +601,21 @@ function paneReport() {
     </div>
     <h4 class="mt28 mb14">Что важно знать</h4>
     ${(r.facts || []).map(f => `<div class="doc"><span class="ic ok">✓</span><div class="tx"><b>${esc(f)}</b></div></div>`).join('')}
+
+    <details class="acc mt20">
+      <summary>Что стало с остатком инициативных платежей<span class="tag">ч. 3 ст. 70 ФЗ № 33-ФЗ</span></summary>
+      <div class="acc-body">
+        <p>Остаток инициативных платежей, не использованных на реализацию проекта, возвращается
+        лицам, которые их внесли. Возврат считается пропорционально сумме взноса и уходит тем же
+        способом, которым платили.</p>
+        <ul>
+          <li>Возвращено плательщикам по этому проекту: <b>${rub(r.restBack)}</b></li>
+          <li>Экономия по итогам торгов (бюджетная часть): <b>${rub(r.restToCity)}</b> — остаётся в бюджете города</li>
+        </ul>
+        <span class="law">Порядок расчёта и возврата устанавливает представительный орган
+        муниципального образования (ч. 4 ст. 70 ФЗ № 33-ФЗ) — в Обнинске это решение городского Собрания.</span>
+      </div>
+    </details>
   </div>`;
 }
 
@@ -901,10 +980,30 @@ function doPay() {
 document.querySelectorAll('#amounts button').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('#amounts button').forEach(x => x.classList.toggle('on', x === b));
   document.getElementById('paySum').value = b.dataset.v;
+  document.getElementById('paySum').dispatchEvent(new Event('input'));
 }));
 
+/* Из введённого берём только цифры: «пятьсот», «500р», «5 0 0» не превращаются в 1 ₽ */
+const paySumEl = document.getElementById('paySum');
+const payHint = document.getElementById('paySumHint');
+function payValue() { return parseMoney(paySumEl.value); }
+function showPayError(msg) {
+  paySumEl.style.borderColor = msg ? 'var(--red)' : '';
+  payHint.style.color = msg ? 'var(--red)' : '';
+  payHint.textContent = msg || 'Только цифры. Минимальный взнос — 10 ₽, каждый платёж записывается отдельной транзакцией.';
+}
+paySumEl.addEventListener('input', () => {
+  const v = payValue();
+  if (v === null && paySumEl.value.trim()) showPayError('Введите сумму цифрами, например 500');
+  else if (v !== null && v < 10) showPayError('Минимальный взнос — 10 ₽');
+  else showPayError('');
+});
+
 document.getElementById('payGo').addEventListener('click', () => {
-  const v = Math.max(1, parseInt(document.getElementById('paySum').value || '0', 10));
+  const v = payValue();
+  if (v === null) { showPayError('Введите сумму цифрами, например 500'); toast('Сумма указана неверно'); return; }
+  if (v < 10) { showPayError('Минимальный взнос — 10 ₽'); toast('Минимальный взнос — 10 ₽'); return; }
+  showPayError('');
   const t = DB.pay(p.id, Session.userId, v, 'confirmed');
   closeModal('mPay');
   const reached = DB.project(p.id).status === 'goal';

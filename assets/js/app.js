@@ -44,8 +44,28 @@ function requireAuth(role, action, payload) {
 }
 
 /* ---------- Формат ---------- */
-const fmt = n => (n === null || n === undefined) ? '—' : Number(n).toLocaleString('ru-RU');
-const rub = n => fmt(n) + ' ₽';
+const NBSP = '\u00A0';
+/* Числа не разрываются переносом строки, знак рубля прилипает к сумме */
+const fmt = n => (n === null || n === undefined || isNaN(n)) ? '—'
+  : Number(n).toLocaleString('ru-RU').replace(/\s/g, NBSP);
+const rub = n => (n === null || n === undefined || isNaN(n)) ? '—' : fmt(n) + NBSP + '₽';
+/* Компактно для крупных плиток: 1,25 млн ₽ вместо 1 250 000 ₽ */
+const rubShort = n => {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  if (Math.abs(n) >= 1000000) {
+    const v = n / 1000000;
+    return (v >= 10 ? Math.round(v) : v.toFixed(2)).toString().replace('.', ',') + NBSP + 'млн' + NBSP + '₽';
+  }
+  if (Math.abs(n) >= 100000) return Math.round(n / 1000) + NBSP + 'тыс.' + NBSP + '₽';
+  return rub(n);
+};
+/* Разбор суммы, введённой человеком: учитываем только цифры */
+function parseMoney(raw) {
+  const digits = String(raw == null ? '' : raw).replace(/[^0-9]/g, '');
+  if (!digits) return null;
+  const v = parseInt(digits, 10);
+  return isNaN(v) || v <= 0 ? null : v;
+}
 function plural(n, one, few, many) {
   const m10 = n % 10, m100 = n % 100;
   if (m10 === 1 && m100 !== 11) return one;
@@ -57,6 +77,17 @@ const statusOf = p => STATUS[p.status] || STATUS.draft;
 const phaseOf = p => statusOf(p).phase;
 const phaseIndex = key => PHASES.findIndex(f => f.key === key);
 const ROLE_LABEL = { citizen: 'Житель', admin: 'Администрация', contractor: 'Подрядчик', guest: 'Гость' };
+
+/* Что видно в общем реестре: все проекты, включая заявки на рассмотрении.
+   Скрыт только чужой черновик — его ещё не отправили. */
+function visibleProjects() {
+  return DB.projects().filter(p => p.status !== 'draft' || p.ownerId === Session.userId);
+}
+
+/* Сколько заявок ждёт решения администрации */
+function adminInbox() {
+  return DB.projects().filter(p => ['submitted', 'review'].includes(p.status));
+}
 
 /* ---------- Логотип ----------
    Знак: гексагон, урна для голосования и бюллетень с галочкой — голос жителя,
@@ -197,6 +228,7 @@ function partners(compact) { return PARTNERS.map(p => partnerTile(p, compact)).j
 /* ---------- Шапка и подвал ---------- */
 function header(active) {
   const acc = Session.user;
+  const inbox = (acc && acc.role === 'admin') ? adminInbox().length : 0;
   const nav = [
     ['index.html', 'Главная', 'home'],
     ['projects.html', 'Проекты', 'projects'],
@@ -216,7 +248,7 @@ function header(active) {
   return `<header class="hdr"><div class="wrap hdr-in">
     ${logo()}
     <nav class="mainnav" id="mainnav">
-      ${nav.map(([h, t, k]) => `<a href="${h}" class="${k === active ? 'on' : ''}">${t}</a>`).join('')}
+      ${nav.map(([h, t, k]) => `<a href="${h}" class="${k === active ? 'on' : ''}">${t}${k === 'cabinet' && inbox ? ' <span class="nav-badge">' + inbox + '</span>' : ''}</a>`).join('')}
       ${acc ? `<a href="#" class="mob-only" id="logoutM">Выйти · ${ROLE_LABEL[acc.role]}</a>`
             : `<a href="login.html" class="mob-only">Войти через Госуслуги</a>`}
       <a href="create.html" class="mob-only">Предложить проект</a>
