@@ -188,14 +188,17 @@ function drawOne() {
       <h4 class="mb14">Участие в торгах</h4>
       ${myBid
         ? `<div class="note ${myBid.status === 'winner' ? 'note-g' : 'note-b'}">
-            <b>${myBid.status === 'winner' ? 'Вы победили в торгах.' : 'Ваша заявка подана.'}</b>
-            Цена ${rub(myBid.price)}, срок ${esc(myBid.term)}.
-            ${myBid.status === 'winner' ? 'Контракт заключён — отчёты по этапам подаются в карточке проекта.' : 'Ожидается решение комиссии.'}</div>
+            <b>${myBid.status === 'winner' ? 'Вы победили в торгах.' : 'Ваша заявка подана и передана администрации.'}</b>
+            Цена ${rub(myBid.price)}, срок ${esc(myBid.term)}, зарегистрирована ${dateTimeRU(myBid.date)}.
+            ${myBid.status === 'winner'
+              ? 'Контракт заключён — отчёты по этапам подаются в карточке проекта.'
+              : 'Она уже видна в кабинете администрации и в уведомлениях куратора. Решение комиссии придёт вам в уведомления.'}</div>
            ${myBid.status === 'winner' ? `<a class="btn btn-p btn-full mt14" href="project.html?id=${p.id}">Перейти к работам</a>` : ''}`
         : (open
           ? `<p class="muted mb14">Ознакомьтесь с условиями и подайте ценовое предложение.</p>
              <button class="btn btn-g btn-full" id="bid">Принять участие</button>`
           : '<div class="note note-a">Приём заявок закрыт.</div>')}
+      <a class="btn btn-o btn-full mt14" href="how.html#torgi">Как устроены торги по 44-ФЗ</a>
     </div>`;
   } else if (Session.is('admin')) {
     side = `<div class="card">

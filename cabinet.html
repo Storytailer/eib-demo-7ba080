@@ -57,7 +57,7 @@ head.innerHTML = `<div class="crumbs"><a href="index.html">Главная</a> �
   <div class="between">
     <div>
       <span class="eyebrow">${ROLE_LABEL[acc.role]} · ${CITY.name}</span>
-      <h2 class="mt8">${esc(acc.name)}</h2>
+      <h2 class="mt8">${esc(acc.full || acc.name)}</h2>
       <p class="lead mt8">${esc(acc.org)}${acc.esia ? ' · ' + esc(acc.esia) : ''}</p>
     </div>
     <div class="flexr">
@@ -109,6 +109,8 @@ if (acc.role === 'citizen') {
   ]) + `
   <div class="grid g2" style="align-items:start">
     <div>
+      ${notifCard(acc)}
+
       <div class="card">
         <div class="card-h"><h3>Требуют вашего действия</h3><span class="chip chip-amber">${tasks.length}</span></div>
         ${tasks.join('') || '<p class="muted">Всё в порядке: незавершённых действий нет.</p>'}
@@ -117,9 +119,8 @@ if (acc.role === 'citizen') {
       <div class="card">
         <div class="card-h"><h3>Мои проекты</h3>
           <a class="btn btn-p btn-s" href="create.html">+ Новый проект</a></div>
-        ${groups.map(([name, list]) => `
-          <h4 class="mt20 mb8">${name} <span class="chip chip-grey">${list.length}</span></h4>
-          ${list.length ? `<div class="tbl-wrap"><table class="tbl">
+        ${groups.map(([name, list]) => fold(name, list.length,
+          list.length ? `<div class="tbl-wrap"><table class="tbl">
             <thead><tr><th>Проект</th><th>Статус</th><th class="r">Смета</th><th></th></tr></thead>
             <tbody>${list.map(p => `<tr>
               <td><b>${plink(p)}</b><br><small class="muted">${esc(p.district)} · создан ${dateRU(p.createdAt)}</small></td>
@@ -128,8 +129,8 @@ if (acc.role === 'citizen') {
               <td class="r"><a class="btn btn-o btn-s" href="${p.status === 'draft' || p.status === 'rework' ? 'create.html?id=' + p.id : 'project.html?id=' + p.id}">
                 ${p.status === 'draft' || p.status === 'rework' ? 'Редактировать' : 'Открыть'}</a></td>
             </tr>`).join('')}</tbody></table></div>`
-            : '<p class="muted" style="font-size:14px">Пусто.</p>'}
-        `).join('')}
+            : '<p class="muted" style="font-size:14px">Пусто.</p>',
+          { open: list.length > 0 && list.length <= 4 })).join('')}
       </div>
 
       <div class="card" id="contribution">
@@ -137,8 +138,7 @@ if (acc.role === 'citizen') {
         <p class="muted mb20">Раздел собирается из реальных записей: подписи, транзакции и проекты,
           в которых вы участвовали. Данные обновляются сразу после действия.</p>
 
-        <h4 class="mb8">Поддержанные проекты</h4>
-        <div class="tbl-wrap mb20"><table class="tbl">
+        ${fold('Поддержанные проекты', supported.length, `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Проект</th><th>Ваше участие</th><th>Статус проекта</th><th class="r">Ваш взнос</th></tr></thead>
           <tbody>${supported.map(p => {
             const signed = DB.hasSigned(p.id, acc.id);
@@ -149,10 +149,9 @@ if (acc.role === 'citizen') {
               <td>${chip(p)}</td>
               <td class="r strong">${sum ? rub(sum) : '—'}</td></tr>`;
           }).join('') || '<tr><td colspan="4" class="muted">Пока нет поддержанных проектов</td></tr>'}</tbody>
-        </table></div>
+        </table></div>`, { open: true })}
 
-        <h4 class="mb8">Финансовый вклад</h4>
-        <div class="tbl-wrap"><table class="tbl">
+        ${fold('Финансовый вклад: все транзакции', myTx.length, `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Транзакция</th><th>Проект</th><th>Дата</th><th class="r">Сумма</th><th>Статус</th><th>Документы</th></tr></thead>
           <tbody>${myTx.map(t => {
             const pr = DB.project(t.projectId);
@@ -165,7 +164,7 @@ if (acc.role === 'citizen') {
               <td><button class="btn btn-o btn-s" onclick="toast('Демо: открылся бы договор пожертвования и кассовый чек')">Договор и чек</button></td>
             </tr>`;
           }).join('') || '<tr><td colspan="6" class="muted">Взносов пока нет</td></tr>'}</tbody>
-        </table></div>
+        </table></div>`, { hint: myTx.length ? 'нажмите, чтобы развернуть' : '' })}
         <div class="facts mt20">
           <div><span>Всего внесено (подтверждено)</span><b>${rub(paid)}</b></div>
           <div><span>Возвращено по нереализованным проектам</span><b>${rub(refunded)}</b></div>
@@ -223,15 +222,20 @@ if (acc.role === 'admin') {
   const modIssues = DB.issuesByStatus('moderation');
   const sentReports = DB.all('reports').filter(r => r.status === 'sent');
   const raised = all.reduce((s, p) => s + DB.raised(p.id), 0);
+  const newBids = DB.all('bids').filter(b => b.status === 'submitted' &&
+    (DB.project(b.projectId) || {}).status === 'procurement');
+  const ownProjects = all.filter(p => p.createdByRole === 'admin');
+  const bizTx = DB.all('transactions').filter(t => t.payer === 'business' && t.status === 'confirmed');
 
   body.innerHTML = kpi([
     [inbox.length, plural(inbox.length, 'заявка ждёт', 'заявки ждут', 'заявок ждут') + ' проверки', 'v'],
-    [collecting.length + goal.length, plural(collecting.length + goal.length, 'проект', 'проекта', 'проектов') + ' в сборе средств', 'b'],
+    [newBids.length, plural(newBids.length, 'заявка подрядчика', 'заявки подрядчиков', 'заявок подрядчиков') + ' на торгах', 'b'],
     [modIssues.length, plural(modIssues.length, 'замечание', 'замечания', 'замечаний') + ' на модерации', 'r'],
     [sentReports.length, plural(sentReports.length, 'отчёт', 'отчёта', 'отчётов') + ' на приёмке', 'a']
   ]) + `
   <div class="grid g2" style="align-items:start">
     <div>
+      ${notifCard(acc)}
       ${inbox.length ? `<div class="note note-a mb20" style="font-size:15px">
         <b>Новые заявки от жителей: ${inbox.length}.</b> Их нужно рассмотреть — проверить данные,
         сформировать смету и вынести решение. Заявки видны в реестре проектов со статусом
@@ -242,16 +246,37 @@ if (acc.role === 'admin') {
         <p class="muted mb20">Заявки жителей: проверка данных, формирование сметы и решение —
           одобрить, вернуть на доработку или отклонить с обоснованием.</p>
         <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Заявка</th><th>Автор</th><th>Категория и место</th><th class="r">Стоимость</th><th>Подана</th><th>Статус</th><th></th></tr></thead>
+          <thead><tr><th>Заявка</th><th>Автор и дата</th><th class="r">Стоимость</th><th></th></tr></thead>
           <tbody>${inbox.map(p => `<tr>
-            <td><b>${plink(p)}</b><br><small class="muted">${esc((p.idea || p.summary || '').slice(0, 60))}</small></td>
-            <td>${esc(p.ownerName)}</td>
-            <td>${esc(p.cat)}<br><small class="muted">${esc(p.district)}${p.addr ? ' · ' + esc(p.addr) : ''}</small></td>
+            <td><b>${plink(p)}</b><br><small class="muted">${esc(p.cat)} · ${esc(p.district)}${p.addr ? ' · ' + esc(p.addr) : ''}</small>
+              <div class="mt8">${chip(p)}</div></td>
+            <td>${esc(p.ownerName)}<br><small class="muted">${dateRU(p.createdAt)}</small></td>
             <td class="r strong">${rub(DB.smetaTotal(p.id))}<br><small class="muted">${p.smetaApproved ? 'смета утверждена' : 'смета не утверждена'}</small></td>
-            <td>${dateRU(p.createdAt)}</td>
-            <td>${chip(p)}</td>
             <td class="r"><a class="btn btn-d btn-s" href="project.html?id=${p.id}">Рассмотреть</a></td>
-          </tr>`).join('') || '<tr><td colspan="7" class="muted">Новых заявок нет</td></tr>'}</tbody>
+          </tr>`).join('') || '<tr><td colspan="4" class="muted">Новых заявок нет</td></tr>'}</tbody>
+        </table></div>
+      </div>
+
+      <div class="card" id="bids">
+        <div class="card-h"><h3>Заявки подрядчиков на торгах</h3>
+          <span class="chip ${newBids.length ? 'chip-blue' : 'chip-grey'}">${newBids.length}</span></div>
+        <p class="muted mb20">Организации подают ценовые предложения по объектам, где объявлены торги.
+          Платформа регистрирует заявку и сразу показывает её здесь; победителя выбирает администрация
+          на странице торгов. Юридически значимая процедура остаётся в ЕИС по 44-ФЗ.</p>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Объект и участник</th><th class="r">Цена и снижение</th><th>Подана</th><th></th></tr></thead>
+          <tbody>${newBids.map(b => {
+            const pr = DB.project(b.projectId);
+            const nmck = pr && pr.tender ? pr.tender.nmck : (pr ? pr.cost : 0);
+            const dis = nmck ? Math.round((nmck - b.price) / nmck * 1000) / 10 : 0;
+            return `<tr>
+              <td><b>${pr ? plink(pr) : '—'}</b><br><small class="muted">${esc(b.contractorName)} · ИНН ${esc(b.inn || '—')}
+                ${b.exp ? '<br>' + esc(b.exp) : ''}${b.fail ? ' · срывов: ' + b.fail : ''}</small></td>
+              <td class="r strong">${rub(b.price)}<br><small class="muted">−${String(dis).replace('.', ',')}% к НМЦК</small></td>
+              <td>${dateTimeRU(b.date)}</td>
+              <td class="r"><a class="btn btn-d btn-s" href="tender.html?id=${b.projectId}">К торгам</a></td>
+            </tr>`;
+          }).join('') || '<tr><td colspan="4" class="muted">Новых заявок от подрядчиков нет</td></tr>'}</tbody>
         </table></div>
       </div>
 
@@ -300,14 +325,51 @@ if (acc.role === 'admin') {
       </div>
 
       <div class="card">
-        <div class="card-h"><h3>Реестр проектов</h3><span class="chip chip-grey">${all.length}</span></div>
-        <div class="tbl-wrap"><table class="tbl">
+        <div class="card-h"><h3>Проекты администрации</h3>
+          <div class="flexr"><span class="chip chip-grey">${ownProjects.length}</span>
+            <a class="btn btn-p btn-s" href="create.html">+ Внести проект</a></div></div>
+        <p class="muted mb20">Администрация может внести проект сама — например, по обращениям жителей
+          или по итогам обхода территории. Такой проект проходит внутреннюю проверку и публикуется вручную.</p>
+        ${ownProjects.length ? `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Проект</th><th>Статус</th><th class="r">Смета</th><th>Создан</th><th></th></tr></thead>
+          <tbody>${ownProjects.map(p => `<tr>
+            <td><b>${plink(p)}</b><br><small class="muted">${esc(p.district)} · ${esc(p.cat)}</small></td>
+            <td>${chip(p)}</td><td class="r">${rub(p.cost)}</td><td>${dateRU(p.createdAt)}</td>
+            <td class="r"><a class="btn btn-o btn-s" href="project.html?id=${p.id}">Открыть</a></td></tr>`).join('')}</tbody>
+        </table></div>` : '<p class="muted">Проектов, внесённых администрацией, пока нет.</p>'}
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Реестр проектов и финансы</h3><span class="chip chip-grey">${all.length}</span></div>
+        ${fold('Все проекты города', all.length, `<div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>Проект</th><th>Статус</th><th class="r">Смета</th><th class="r">Собрано</th><th>Инициатор</th></tr></thead>
           <tbody>${all.map(p => `<tr>
             <td><b>${plink(p)}</b><br><small class="muted">${esc(p.district)} · ${esc(p.cat)}</small></td>
             <td>${chip(p)}</td><td class="r">${rub(p.cost)}</td>
             <td class="r">${rub(DB.raised(p.id))}</td><td>${esc(p.ownerName)}</td></tr>`).join('')}</tbody>
+        </table></div>`)}
+        ${fold('Софинансирование от бизнеса', bizTx.length, `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Организация</th><th>Проект</th><th>Дата</th><th class="r">Сумма</th></tr></thead>
+          <tbody>${bizTx.map(t => {
+            const pr = DB.project(t.projectId);
+            return `<tr><td><b>${esc(t.userName)}</b></td><td>${pr ? plink(pr) : '—'}</td>
+              <td>${dateTimeRU(t.date)}</td><td class="r strong">${rub(t.amount)}</td></tr>`;
+          }).join('') || '<tr><td colspan="4" class="muted">Взносов от организаций пока нет</td></tr>'}</tbody>
         </table></div>
+        <div class="note note-b mt14">Юридические лица вправе вносить инициативные платежи наравне
+          с жителями (ст. 70 ФЗ-33). Деньги идут тем же маршрутом — в бюджет города, на конкретный проект.
+          Участие в софинансировании не даёт преимуществ на торгах.</div>`,
+          { chip: bizTx.length ? 'chip-green' : 'chip-grey' })}
+        ${fold('Все транзакции платформы', DB.all('transactions').length, `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Транзакция</th><th>Проект</th><th>Плательщик</th><th>Дата</th><th class="r">Сумма</th><th>Статус</th></tr></thead>
+          <tbody>${DB.all('transactions').slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 60).map(t => {
+            const pr = DB.project(t.projectId), s = TX_STATUS[t.status] || ['chip-grey', t.status];
+            return `<tr><td><code>${esc(t.no)}</code></td><td>${pr ? plink(pr) : '—'}</td>
+              <td>${esc(t.userName)}${t.payer === 'business' ? ' <span class="chip chip-violet">юрлицо</span>' : ''}</td>
+              <td>${dateTimeRU(t.date)}</td><td class="r strong">${rub(t.amount)}</td>
+              <td><span class="chip ${s[0]}">${s[1]}</span></td></tr>`;
+          }).join('')}</tbody></table></div>`,
+          { hint: 'последние 60 записей' })}
       </div>
     </div>
 
@@ -364,20 +426,21 @@ if (acc.role === 'contractor') {
   ]) + `
   <div class="grid g2" style="align-items:start">
     <div>
+      ${notifCard(acc)}
+
       <div class="card">
         <div class="card-h"><h3>Мои контракты</h3><span class="chip chip-grey">${myProjects.length}</span></div>
         <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Объект</th><th>Контракт</th><th class="r">Цена</th><th class="r">Готовность</th><th>Статус</th><th></th></tr></thead>
+          <thead><tr><th>Объект и контракт</th><th class="r">Цена</th><th class="r">Готовность</th><th></th></tr></thead>
           <tbody>${myProjects.map(p => `<tr>
-            <td><b>${plink(p)}</b><br><small class="muted">${esc(p.district)}</small></td>
-            <td>${esc(p.contract.number)}<br><small class="muted">оплачено ${rub(p.contract.paid)}</small></td>
+            <td><b>${plink(p)}</b><br><small class="muted">${esc(p.district)} · ${esc(p.contract.number)} · оплачено ${rub(p.contract.paid)}</small>
+              <div class="mt8">${chip(p)}</div></td>
             <td class="r strong">${rub(p.contract.sum)}</td>
-            <td class="r" style="min-width:120px">
+            <td class="r" style="min-width:110px">
               <div class="bar ${DB.worksProgress(p.id) === 100 ? 'ok' : 'warn'}"><i style="width:${DB.worksProgress(p.id)}%"></i></div>
               <small class="muted">${DB.worksProgress(p.id)}%</small></td>
-            <td>${chip(p)}</td>
             <td class="r"><a class="btn btn-o btn-s" href="project.html?id=${p.id}">Открыть</a></td>
-          </tr>`).join('') || '<tr><td colspan="6" class="muted">Контрактов пока нет — подайте заявку на торгах</td></tr>'}</tbody>
+          </tr>`).join('') || '<tr><td colspan="4" class="muted">Контрактов пока нет — подайте заявку на торгах</td></tr>'}</tbody>
         </table></div>
       </div>
 
@@ -392,34 +455,60 @@ if (acc.role === 'contractor') {
           'Открыть', 'project.html?id=' + p.id)).join('')}
       </div>`).join('')}
 
+      <div class="card" id="support">
+        <div class="card-h"><h3>Поддержать проект города</h3><span class="chip chip-violet">софинансирование</span></div>
+        <p class="muted mb20">Организация вправе внести инициативный платёж наравне с жителями
+          (ст. 70 ФЗ-33): деньги идут в бюджет города на конкретный проект. Это не влияет на торги
+          и не даёт преимуществ при отборе подрядчика — но ускоряет сбор и видно жителям в карточке проекта.</p>
+        ${DB.projects().filter(p => ['collecting', 'signing'].includes(p.status)).map(p => {
+          const left = DB.leftToRaise(p.id), pr = DB.progress(p.id);
+          return `<div class="doc"><span class="ic">🏢</span>
+            <div class="tx"><b>${plink(p)}</b>
+              <small>${esc(p.district)} · ${p.status === 'collecting'
+                ? 'собрано ' + pr + '%, осталось ' + rub(left)
+                : 'идёт сбор подписей, сбор средств откроется после'}</small></div>
+            <div class="act"><a class="btn btn-${p.status === 'collecting' ? 'p' : 'o'} btn-s" href="project.html?id=${p.id}">
+              ${p.status === 'collecting' ? 'Внести взнос' : 'Открыть'}</a></div></div>`;
+        }).join('') || '<p class="muted">Сейчас активных сборов нет.</p>'}
+        ${(() => {
+          const my = DB.txByUser(acc.id).filter(t => t.status === 'confirmed');
+          const sumB = my.reduce((s, t) => s + t.amount, 0);
+          return my.length ? fold('Наши взносы', my.length, `<div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>Транзакция</th><th>Проект</th><th>Дата</th><th class="r">Сумма</th></tr></thead>
+            <tbody>${my.map(t => { const pr = DB.project(t.projectId);
+              return `<tr><td><code>${esc(t.no)}</code></td><td>${pr ? plink(pr) : '—'}</td>
+                <td>${dateTimeRU(t.date)}</td><td class="r strong">${rub(t.amount)}</td></tr>`; }).join('')}</tbody>
+            </table></div><div class="facts mt14"><div><span>Всего внесено организацией</span><b>${rub(sumB)}</b></div></div>`,
+            { chip: 'chip-green', open: true }) : '';
+        })()}
+      </div>
+
       <div class="card">
         <div class="card-h"><h3>Мои отчёты</h3><span class="chip chip-grey">${myReports.length}</span></div>
         <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Объект</th><th>Этап</th><th>Дата работ</th><th>Отправлен</th><th class="r">Файлы</th><th>Статус</th></tr></thead>
+          <thead><tr><th>Объект и этап</th><th>Работы / отправлен</th><th class="r">Файлы</th><th>Статус</th></tr></thead>
           <tbody>${myReports.slice(0, 12).map(r => {
             const pr = DB.project(r.projectId);
             const s = { sent: ['chip-blue', 'ждёт приёмки'], accepted: ['chip-green', 'принят'], returned: ['chip-red', 'возвращён'] }[r.status] || ['chip-grey', r.status];
-            return `<tr><td>${pr ? plink(pr) : '—'}</td><td>${esc(r.stage)}</td>
-              <td>${dateRU(r.workDate)}</td><td>${dateTimeRU(r.sentAt)}</td>
-              <td class="r">${(r.photos || []).length} фото · ${(r.docs || []).length} док.</td>
+            return `<tr><td><b>${pr ? plink(pr) : '—'}</b><br><small class="muted">${esc(r.stage)}</small></td>
+              <td>${dateRU(r.workDate)}<br><small class="muted">отправлен ${dateTimeRU(r.sentAt)}</small></td>
+              <td class="r">${(r.photos || []).length} фото<br><small class="muted">${(r.docs || []).length} док.</small></td>
               <td><span class="chip ${s[0]}">${s[1]}</span></td></tr>`;
-          }).join('') || '<tr><td colspan="6" class="muted">Отчётов пока нет</td></tr>'}</tbody>
+          }).join('') || '<tr><td colspan="4" class="muted">Отчётов пока нет</td></tr>'}</tbody>
         </table></div>
       </div>
 
       <div class="card">
         <div class="card-h"><h3>Открытые торги</h3><span class="chip chip-blue">44-ФЗ</span></div>
         <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Объект</th><th>Извещение</th><th class="r">НМЦК</th><th>Приём до</th><th>Моя заявка</th><th></th></tr></thead>
+          <thead><tr><th>Объект и извещение</th><th class="r">НМЦК</th><th>Моя заявка</th><th></th></tr></thead>
           <tbody>${openTenders.map(p => {
             const mine = myBids.find(b => b.projectId === p.id);
-            return `<tr><td><b>${esc(p.title)}</b><br><small class="muted">${esc(p.district)}</small></td>
-              <td><small>${esc(p.tender ? p.tender.number : '—')}</small></td>
+            return `<tr><td><b>${esc(p.title)}</b><br><small class="muted">${esc(p.district)} · ${esc(p.tender ? p.tender.number : '—')}<br>приём заявок: ${esc(p.tender ? p.tender.bidsUntil : '—')}</small></td>
               <td class="r strong">${rub(p.tender ? p.tender.nmck : p.cost)}</td>
-              <td>${esc(p.tender ? p.tender.bidsUntil : '—')}</td>
               <td>${mine ? '<span class="chip chip-green">подана · ' + rub(mine.price) + '</span>' : '<span class="chip chip-grey">не подана</span>'}</td>
               <td class="r"><a class="btn btn-${mine ? 'o' : 'p'} btn-s" href="tender.html?id=${p.id}">${mine ? 'Открыть' : 'Принять участие'}</a></td></tr>`;
-          }).join('') || '<tr><td colspan="6" class="muted">Открытых торгов сейчас нет</td></tr>'}</tbody>
+          }).join('') || '<tr><td colspan="4" class="muted">Открытых торгов сейчас нет</td></tr>'}</tbody>
         </table></div>
       </div>
     </div>
@@ -447,6 +536,8 @@ if (acc.role === 'contractor') {
   </div>`;
 }
 
+
+bindNotif();
 }
 </script>
 </body>

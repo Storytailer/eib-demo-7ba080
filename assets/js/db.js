@@ -7,7 +7,7 @@
    при первом запуске: статичные проекты разворачиваются в записи БД —
    транзакции, подписи, события хроники, заявки на торги, отчёты и замечания. */
 
-const DB_KEY = 'eib-db-v4';
+const DB_KEY = 'eib-db-v5';
 
 /* ---------------- Статусы жизненного цикла ---------------- */
 const STATUS = {
@@ -74,7 +74,14 @@ const DB = {
   load() {
     try {
       const raw = localStorage.getItem(DB_KEY);
-      if (raw) { this.data = JSON.parse(raw); return this.data; }
+      if (raw) {
+        this.data = JSON.parse(raw);
+        /* страховка от старых снимков: недостающие коллекции */
+        ['users','projects','signatures','transactions','events','issues','bids','reports','views','notifications']
+          .forEach(c => { if (!Array.isArray(this.data[c])) this.data[c] = []; });
+        if (!this.data.session) this.data.session = { role: 'guest' };
+        return this.data;
+      }
     } catch (e) { /* приватный режим */ }
     this.data = this.seed();
     this.save();
@@ -95,7 +102,8 @@ const DB = {
   seed() {
     const db = {
       users: [], projects: [], signatures: [], transactions: [], events: [],
-      issues: [], bids: [], reports: [], views: [], session: { role: 'guest' }
+      issues: [], bids: [], reports: [], views: [], notifications: [],
+      session: { role: 'guest' }
     };
 
     /* Пользователи */
@@ -128,6 +136,58 @@ const DB = {
       contractor: 'procurement', works: 'works', done: 'done'
     };
 
+    /* ---------------------------------------------------------------
+       Даты «уже случившегося» (документы, реестры, пакет в СЭД) в демо-данных
+       заданы вручную и часть из них оказалась впереди сегодняшнего дня.
+       Сдвигаем такие даты в прошлое одним шагом — порядок между ними сохраняется.
+       Сроки, которые и должны быть в будущем (приём заявок, дата аукциона),
+       не трогаем.
+    --------------------------------------------------------------- */
+    const MON = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    const RX_DOT = /(\d{2})\.(\d{2})\.(\d{4})/g;
+    const RX_TXT = new RegExp('(\\d{1,2})\\s+(' + MON.join('|') + ')\\s+(\\d{4})', 'g');
+    const pad = n => String(n).padStart(2, '0');
+
+    /* Самая поздняя «прошедшая» дата в исходных данных */
+    let maxPast = 0;
+    const scan = s => {
+      if (typeof s !== 'string') return;
+      let m;
+      RX_DOT.lastIndex = 0;
+      while ((m = RX_DOT.exec(s))) {
+        const t = +new Date(+m[3], +m[2] - 1, +m[1]);
+        if (t > maxPast) maxPast = t;
+      }
+    };
+    PROJECTS.forEach(p => {
+      if (p.docsPack) Object.values(p.docsPack).forEach(scan);
+      (p.docs || []).forEach(d => scan(d.date));
+      if (p.signatures) scan(p.signatures.date);
+      if (p.tender) scan(p.tender.published);
+    });
+    const shiftMs = Math.max(0, maxPast - (Date.now() - 2 * 86400000));
+    const shiftStr = s => {
+      if (typeof s !== 'string' || !shiftMs) return s;
+      return s
+        .replace(RX_DOT, (_, d, mo, y) => {
+          const x = new Date(+new Date(+y, +mo - 1, +d) - shiftMs);
+          return pad(x.getDate()) + '.' + pad(x.getMonth() + 1) + '.' + x.getFullYear();
+        })
+        .replace(RX_TXT, (_, d, mo, y) => {
+          const x = new Date(+new Date(+y, MON.indexOf(mo), +d) - shiftMs);
+          return x.getDate() + ' ' + MON[x.getMonth()] + ' ' + x.getFullYear();
+        });
+    };
+    const shiftAny = v => Array.isArray(v) ? v.map(shiftAny)
+      : (v && typeof v === 'object' ? shiftObj(v) : (typeof v === 'string' ? shiftStr(v) : v));
+    const shiftObj = o => {
+      if (!o) return o;
+      const out = {};
+      Object.keys(o).forEach(k => { out[k] = shiftAny(o[k]); });
+      return out;
+    };
+
     /* Проекты + связанные записи */
     PROJECTS.forEach((p, pi) => {
       const status = STAGE_TO_STATUS[p.stage] || 'collecting';
@@ -144,16 +204,16 @@ const DB = {
         smetaApproved: p.stage !== 'idea',
         idea: '', plan: '',
         status: status,
-        docs: (p.docs || []).map(d => ({ ...d })),
-        docsPack: p.docsPack || null,
+        docs: (p.docs || []).map(d => shiftObj(d)),
+        docsPack: shiftObj(p.docsPack),
         tender: p.tender ? { number: p.tender.number, law: p.tender.law, platform: p.tender.platform,
-          nmck: p.tender.nmck, published: p.tender.published, bidsUntil: p.tender.bidsUntil,
+          nmck: p.tender.nmck, published: shiftStr(p.tender.published), bidsUntil: p.tender.bidsUntil,
           auctionAt: p.tender.auctionAt, term: p.tender.term, open: p.stage === 'contractor' } : null,
         contract: p.works ? { number: p.works.contract, contractorId: 'u-contractor',
           sum: p.works.sum, paid: p.works.paid, start: p.works.start, finish: p.works.finish,
           curator: p.works.curator, publicCheck: p.works.publicCheck } : null,
         plan_items: p.works ? p.works.plan.map(x => ({ id: uid('pl'), ...x })) : [],
-        report: p.report || null,
+        report: shiftObj(p.report),
         createdByRole: 'citizen',
         createdAt: daysAgo(120 - pi * 8)
       });
@@ -478,6 +538,47 @@ const DB = {
     ['skver-uchenyh', 'vorkaut-zaovrazhye', 'shkola7-sport'].forEach((pid, i) =>
       db.views.push({ userId: 'u-citizen', projectId: pid, lastSeen: daysAgo(i + 1) }));
 
+    /* ---------------------------------------------------------------
+       Даты в демо-данных заданы вручную и часть из них попадает в будущее.
+       Сдвигаем такие записи в прошлое, сохраняя их порядок: иначе новые
+       действия пользователя оказываются внизу хроники.
+    --------------------------------------------------------------- */
+    const FIELDS = { events: ['date'], reports: ['sentAt', 'workDate'], issues: ['date'],
+      transactions: ['date'], signatures: ['date'], bids: ['date'] };
+    const edge = Date.now() - 2 * 86400000;
+    let maxFuture = 0;
+    Object.keys(FIELDS).forEach(coll => db[coll].forEach(r => FIELDS[coll].forEach(f => {
+      const t = +new Date(r[f]);
+      if (t > edge && t > maxFuture) maxFuture = t;
+    })));
+    if (maxFuture) {
+      const delta = maxFuture - edge;
+      Object.keys(FIELDS).forEach(coll => db[coll].forEach(r => FIELDS[coll].forEach(f => {
+        const t = +new Date(r[f]);
+        if (t > edge) r[f] = new Date(t - delta).toISOString();
+      })));
+    }
+
+    /* Стартовые уведомления: то, что уже ждёт каждую роль */
+    db.notifications.push(
+      { id: uid('nt'), to: 'admin', kind: 'application', date: daysAgo(2),
+        title: 'Новая заявка от жителя',
+        text: 'Мария К. отправила заявку «Освещение дорожки к детскому саду № 21» — нужна проверка и смета.',
+        link: 'project.html?id=demo-inbox', read: false },
+      { id: uid('nt'), to: 'admin', kind: 'issue', date: daysAgo(1),
+        title: 'Замечание жителя на модерации',
+        text: 'Воркаут-площадка в Заовражье: «после дождя на новом покрытии стоит вода».',
+        link: 'cabinet.html#notify', read: false },
+      { id: uid('nt'), to: 'u-citizen', kind: 'status', date: daysAgo(2),
+        title: 'Заявка принята в обработку',
+        text: 'Ваша заявка «Освещение дорожки к детскому саду № 21» зарегистрирована и ждёт решения администрации.',
+        link: 'project.html?id=demo-inbox', read: false },
+      { id: uid('nt'), to: 'contractor', kind: 'tender', date: daysAgo(6),
+        title: 'Открыты торги по 44-ФЗ',
+        text: 'Лестница к парку «Белкино», НМЦК 980 000 ₽. Приём заявок открыт.',
+        link: 'tender.html?id=demo-tender', read: false }
+    );
+
     return db;
   },
 
@@ -485,6 +586,47 @@ const DB = {
   all(coll) { return this.data[coll] || []; },
   user(id) { return this.data.users.find(u => u.id === id) || null; },
   usersByRole(role) { return this.data.users.filter(u => u.role === role); },
+
+  /* ---------------- Уведомления ----------------
+     Адрес получателя: роль ('admin', 'contractor', 'citizen') или конкретный
+     идентификатор пользователя ('u-citizen'). Одно действие одной роли
+     превращается в задачу для другой — это и есть «маршрут» процесса. */
+  notify(to, n) {
+    if (!to) return null;
+    const rec = {
+      id: uid('nt'), to, kind: n.kind || 'info', date: nowISO(),
+      title: n.title, text: n.text || '', link: n.link || '', read: false
+    };
+    this.data.notifications.push(rec);
+    this.save();
+    return rec;
+  },
+  /* Уведомить всех подрядчиков, кроме указанного */
+  notifyContractors(n, exceptId) {
+    this.usersByRole('contractor').forEach(u => {
+      if (u.id !== exceptId) this.notify(u.id, n);
+    });
+  },
+  notifications(user) {
+    if (!user) return [];
+    return this.data.notifications
+      .filter(n => n.to === user.id || n.to === user.role)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  },
+  unreadCount(user) { return this.notifications(user).filter(n => !n.read).length; },
+  markRead(user, id) {
+    this.notifications(user).forEach(n => { if (!id || n.id === id) n.read = true; });
+    this.save();
+  },
+  /* Владелец проекта — адресат «ответов» по его инициативе */
+  ownerOf(projectId) {
+    const p = this.project(projectId);
+    return p ? p.ownerId : null;
+  },
+  contractorOf(projectId) {
+    const p = this.project(projectId);
+    return p && p.contract ? p.contract.contractorId : null;
+  },
 
   projects(filter) {
     let list = this.data.projects.slice();
@@ -530,19 +672,39 @@ const DB = {
     return Math.max(0, p.goal - this.raised(projectId));
   },
 
-  pay(projectId, userId, amount, status) {
+  pay(projectId, userId, amount, status, opt) {
     const u = this.user(userId);
+    const p = this.project(projectId);
+    const business = !!(opt && opt.business) || (u && u.role === 'contractor');
     const t = {
       id: uid('tx'), no: 'TX-' + Math.floor(2027000 + Math.random() * 9000),
       projectId, userId, userName: u ? u.name : 'Гость',
-      amount: Math.round(amount), date: nowISO(), method: 'карта', status: status || 'confirmed'
+      payer: business ? 'business' : 'citizen',
+      amount: Math.round(amount), date: nowISO(), method: business ? 'счёт юрлица' : 'карта',
+      status: status || 'confirmed'
     };
     this.data.transactions.push(t);
     this.addEvent(projectId, {
-      title: 'Поступление ' + amount.toLocaleString('ru-RU') + ' ₽',
-      text: 'Взнос от ' + t.userName + ' — ' + t.no + ', договор пожертвования и чек сформированы.',
-      actor: 'платформа'
+      title: (business ? 'Софинансирование от бизнеса ' : 'Поступление ') + amount.toLocaleString('ru-RU') + ' ₽',
+      text: business
+        ? t.userName + ' внесла инициативный платёж как юридическое лицо — ' + t.no +
+          '. Средства идут в бюджет города наравне со взносами жителей (ст. 70 ФЗ-33).'
+        : 'Взнос от ' + t.userName + ' — ' + t.no + ', договор пожертвования и чек сформированы.',
+      actor: business ? 'бизнес' : 'платформа'
     });
+    if (business) {
+      this.notify('admin', { kind: 'money',
+        title: 'Софинансирование от организации',
+        text: t.userName + ' внесла ' + t.amount.toLocaleString('ru-RU') + ' ₽ в проект «' +
+          (p ? p.title : '') + '». Платёж зачислен в бюджет города.',
+        link: 'project.html?id=' + projectId });
+    }
+    if (p && p.ownerId && p.ownerId !== userId) {
+      this.notify(p.ownerId, { kind: 'money',
+        title: 'Новый взнос в ваш проект',
+        text: t.userName + ' поддержал(а) «' + p.title + '» на ' + t.amount.toLocaleString('ru-RU') + ' ₽.',
+        link: 'project.html?id=' + projectId });
+    }
     this.save();
     this.checkGoal(projectId);
     return t;
@@ -561,6 +723,11 @@ const DB = {
         '. Возвращено ' + sum.toLocaleString('ru-RU') + ' ₽ плательщикам на карты, с которых поступила оплата (ст. 70 ФЗ-33).',
       actor: 'платформа'
     });
+    const payers = [...new Set(this.tx(projectId).map(t => t.userId).filter(Boolean))];
+    payers.forEach(uid2 => this.notify(uid2, { kind: 'money',
+      title: 'Возврат взноса',
+      text: 'Проект «' + p.title + '» не реализован — ваш взнос возвращён на карту, с которой поступила оплата (ст. 70 ФЗ-33).',
+      link: 'project.html?id=' + projectId }));
     this.save();
     return sum;
   },
@@ -577,6 +744,14 @@ const DB = {
         p.goal.toLocaleString('ru-RU') + ' ₽. Сбор закрыт, платформа формирует пакет документов для администрации.',
       actor: 'платформа'
     });
+    this.notify('admin', { kind: 'money',
+      title: 'Цель сбора достигнута',
+      text: '«' + p.title + '»: жители собрали свою долю полностью. Нужно принять пакет документов.',
+      link: 'project.html?id=' + projectId });
+    if (p.ownerId) this.notify(p.ownerId, { kind: 'money',
+      title: 'Ваш проект собрал нужную сумму',
+      text: '«' + p.title + '» — доля жителей собрана. Пакет документов ушёл в администрацию.',
+      link: 'project.html?id=' + projectId });
     this.save();
     return true;
   },
@@ -614,6 +789,15 @@ const DB = {
           ' (ст. 49 ФЗ-33). Протокол собрания сформирован, открыт сбор софинансирования.',
         actor: 'платформа'
       });
+      this.notify('admin', { kind: 'status',
+        title: 'Собраны подписи, открыт сбор средств',
+        text: '«' + p.title + '»: ' + count + ' подписей при норме ' + p.signNeed +
+          '. Срок сбора — 40 рабочих дней (п. 8.2).',
+        link: 'project.html?id=' + projectId });
+      if (p.ownerId) this.notify(p.ownerId, { kind: 'status',
+        title: 'Подписи собраны',
+        text: 'По проекту «' + p.title + '» набрано нужное число подписей — открыт сбор средств.',
+        link: 'project.html?id=' + projectId });
       moved = true;
     }
     this.save();
@@ -652,6 +836,11 @@ const DB = {
       title: 'Замечание жителя отправлено на модерацию',
       text: text.slice(0, 140), actor: 'житель'
     });
+    const p = this.project(projectId);
+    this.notify('admin', { kind: 'issue',
+      title: 'Новое замечание жителя — нужна модерация',
+      text: (p ? '«' + p.title + '»: ' : '') + text.slice(0, 120),
+      link: 'cabinet.html#notify' });
     this.save();
     return is;
   },
@@ -667,6 +856,16 @@ const DB = {
         : 'Замечание не опубликовано. ') + (comment || ''),
       actor: 'администрация'
     });
+    const p = this.project(is.projectId);
+    this.notify(is.userId, { kind: 'issue',
+      title: decision === 'published' ? 'Ваше замечание опубликовано' : 'Ваше замечание отклонено',
+      text: (p ? '«' + p.title + '». ' : '') + (comment || ''),
+      link: 'project.html?id=' + is.projectId });
+    const cid = this.contractorOf(is.projectId);
+    if (decision === 'published' && cid) this.notify(cid, { kind: 'issue',
+      title: 'Замечание жителя по вашему объекту',
+      text: (p ? '«' + p.title + '»: ' : '') + is.text.slice(0, 120),
+      link: 'project.html?id=' + is.projectId });
     this.save();
     return is;
   },
@@ -684,11 +883,29 @@ const DB = {
       exp: (u.done || 0) + ' исполненных контрактов', done: u.done || 0, fail: u.fail || 0,
       status: 'submitted', why: '', date: nowISO()
     });
+    const p = this.project(projectId);
+    const nmck = p.tender ? p.tender.nmck : p.cost;
+    const total = this.bids(projectId).length;
     this.addEvent(projectId, {
       title: 'Подана заявка на участие в торгах',
       text: u.name + ' подал(а) заявку с ценой ' + Math.round(price).toLocaleString('ru-RU') + ' ₽.',
       actor: 'подрядчик'
     });
+    this.notify('admin', { kind: 'bid',
+      title: 'Новая заявка подрядчика на торгах',
+      text: u.name + ' подал(а) заявку по объекту «' + p.title + '»: ' +
+        Math.round(price).toLocaleString('ru-RU') + ' ₽ при НМЦК ' + nmck.toLocaleString('ru-RU') +
+        ' ₽. Всего заявок: ' + total + '.',
+      link: 'tender.html?id=' + projectId });
+    if (p.ownerId) this.notify(p.ownerId, { kind: 'bid',
+      title: 'На ваш проект подана заявка подрядчика',
+      text: '«' + p.title + '»: заявок на торгах — ' + total + '. Победителя определяет администрация.',
+      link: 'tender.html?id=' + projectId });
+    this.notify(contractorId, { kind: 'bid',
+      title: 'Заявка принята платформой',
+      text: 'Ваша заявка по объекту «' + p.title + '» зарегистрирована и передана администрации. ' +
+        'Статус отбора появится здесь же.',
+      link: 'tender.html?id=' + projectId });
     this.save();
     return { added: true };
   },
@@ -724,6 +941,22 @@ const DB = {
         '. Контракт ' + p.contract.number + ' заключён.',
       actor: 'администрация'
     });
+    this.notify(win.contractorId, { kind: 'win',
+      title: 'Вы победили в отборе',
+      text: 'Объект «' + p.title + '», контракт ' + p.contract.number + ' на ' +
+        win.price.toLocaleString('ru-RU') + ' ₽. Заполните график работ и отправляйте отчёты по этапам.',
+      link: 'project.html?id=' + projectId });
+    this.bids(projectId).forEach(b => {
+      if (b.id !== bidId) this.notify(b.contractorId, { kind: 'bid',
+        title: 'Отбор завершён — победил другой участник',
+        text: 'Объект «' + p.title + '»: победитель ' + win.contractorName + ', цена ' +
+          win.price.toLocaleString('ru-RU') + ' ₽.',
+        link: 'tender.html?id=' + projectId });
+    });
+    if (p.ownerId) this.notify(p.ownerId, { kind: 'win',
+      title: 'По вашему проекту выбран подрядчик',
+      text: '«' + p.title + '»: ' + win.contractorName + ', контракт ' + p.contract.number + '. Начинаются работы.',
+      link: 'project.html?id=' + projectId });
     this.save();
     return win;
   },
@@ -759,6 +992,16 @@ const DB = {
         '. Дата работ: ' + dateRU(data.workDate) + ', отправлен ' + dateTimeRU(r.sentAt) + '.',
       actor: 'подрядчик'
     });
+    const u = this.user(contractorId);
+    this.notify('admin', { kind: 'report',
+      title: 'Отчёт подрядчика на приёмку',
+      text: (u ? u.name : 'Подрядчик') + ' · «' + p.title + '», этап «' + data.stage +
+        '». Нужно принять этап или вернуть на доработку.',
+      link: 'project.html?id=' + projectId + '&tab=works' });
+    if (p.ownerId) this.notify(p.ownerId, { kind: 'report',
+      title: 'Новый отчёт по вашему проекту',
+      text: '«' + p.title + '»: этап «' + data.stage + '», фотографий — ' + (data.photos || []).length + '.',
+      link: 'project.html?id=' + projectId + '&tab=works' });
     this.save();
     return r;
   },
@@ -778,6 +1021,15 @@ const DB = {
         : 'Этап «' + r.stage + '» возвращён на доработку. ') + (comment || ''),
       actor: 'администрация'
     });
+    this.notify(r.contractorId, { kind: 'report',
+      title: accepted ? 'Отчёт принят администрацией' : 'Отчёт возвращён на доработку',
+      text: '«' + p.title + '», этап «' + r.stage + '». ' +
+        (accepted ? 'Оплата этапа по акту КС-2 передана в казначейство.' : (comment || 'См. комментарий администрации.')),
+      link: 'project.html?id=' + r.projectId + '&tab=works' });
+    if (p.ownerId) this.notify(p.ownerId, { kind: 'report',
+      title: accepted ? 'Этап работ принят' : 'Этап работ возвращён подрядчику',
+      text: '«' + p.title + '»: этап «' + r.stage + '» — ' + (accepted ? 'принят администрацией.' : 'отправлен на доработку.'),
+      link: 'project.html?id=' + r.projectId + '&tab=works' });
     this.save();
     return r;
   },
@@ -812,6 +1064,43 @@ const DB = {
       text: (opt && opt.text) || ('Проект переведён из «' + STATUS[from].n + '» в «' + STATUS[status].n + '».'),
       actor: (opt && opt.actor) || 'администрация'
     });
+
+    /* Кому и что «прилетает» при смене статуса */
+    const link = 'project.html?id=' + projectId;
+    const toOwner = t => { if (p.ownerId) this.notify(p.ownerId, Object.assign({ kind: 'status', link }, t)); };
+    if (status === 'submitted') {
+      this.notify('admin', { kind: 'application', link,
+        title: 'Новая заявка на рассмотрение',
+        text: p.ownerName + ' отправил(а) заявку «' + p.title + '». Оценка стоимости — ' +
+          (p.cost || 0).toLocaleString('ru-RU') + ' ₽.' });
+      toOwner({ title: 'Заявка отправлена в администрацию',
+        text: '«' + p.title + '» зарегистрирована. Ответ придёт сюда же.' });
+    }
+    if (status === 'review') toOwner({ title: 'Заявка взята в работу',
+      text: '«' + p.title + '»: куратор проверяет данные и смету.' });
+    if (status === 'rework') toOwner({ title: 'Заявка возвращена на доработку',
+      text: '«' + p.title + '». ' + ((opt && opt.comment) || 'См. комментарий администрации.'),
+      link: 'create.html?id=' + projectId });
+    if (status === 'rejected') toOwner({ title: 'Заявка отклонена',
+      text: '«' + p.title + '». ' + ((opt && opt.comment) || 'См. обоснование администрации.') });
+    if (status === 'approved') toOwner({ title: 'Заявка одобрена',
+      text: '«' + p.title + '»: комиссия одобрила проект, смета зафиксирована.' });
+    if (status === 'signing') toOwner({ title: 'Проект опубликован',
+      text: '«' + p.title + '» появился в реестре — идёт сбор подписей жителей.' });
+    if (status === 'documents') this.notify('admin', { kind: 'docs', link,
+      title: 'Пакет документов поступил',
+      text: '«' + p.title + '»: реестр взносов и договоры подписаны, нужен приём пакета.' });
+    if (status === 'procurement') {
+      this.notifyContractors({ kind: 'tender',
+        title: 'Открыты торги по 44-ФЗ',
+        text: '«' + p.title + '», НМЦК ' + ((p.tender && p.tender.nmck) || p.cost || 0).toLocaleString('ru-RU') +
+          ' ₽. Приём заявок открыт.',
+        link: 'tender.html?id=' + projectId });
+      toOwner({ title: 'По вашему проекту объявлены торги',
+        text: '«' + p.title + '»: извещение опубликовано, идёт отбор подрядчика.' });
+    }
+    if (status === 'done') toOwner({ title: 'Проект завершён',
+      text: '«' + p.title + '»: объект принят, опубликован итоговый отчёт.' });
     this.save();
     return p;
   },

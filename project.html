@@ -33,8 +33,12 @@
 <!-- Взнос -->
 <div class="modal" id="mPay"><div class="modal-box">
   <button class="modal-x">×</button>
-  <h3>Поддержать проект</h3>
+  <h3 id="payHead">Поддержать проект</h3>
   <p class="muted mb20" id="payTitle"></p>
+  <div class="note note-v mb20" id="payBiz" style="display:none">Организация вносит
+    <b>инициативный платёж юридического лица</b> (ст. 70 ФЗ-33). Платёж идёт тем же маршрутом,
+    что и взносы жителей — в бюджет города на конкретный проект, и виден всем в карточке.
+    <b>На отбор подрядчика это не влияет</b> и преимуществ на торгах не даёт.</div>
   <div class="amounts" id="amounts">
     <button data-v="300">300 ₽</button>
     <button data-v="500" class="on">500 ₽</button>
@@ -327,14 +331,14 @@ function paneSign() {
     ${mine ? `<div class="note note-g mt20"><b>Ваша подпись учтена.</b> Вы в списке ниже — повторно
       подписать проект нельзя, дубликаты система не создаёт.</div>` : ''}
 
-    <div class="tbl-wrap mt20"><table class="tbl">
+    <div class="mt20">${fold('Список подписей', list.length, `<div class="tbl-wrap"><table class="tbl">
       <thead><tr><th>№</th><th>Кто подписал</th><th>Идентификатор</th><th class="r">Дата и время</th></tr></thead>
       <tbody>${list.map((s, i) => `<tr${s.userId === Session.userId ? ' style="background:var(--green-soft)"' : ''}>
         <td>${list.length - i}</td>
         <td><b>${esc(s.userName)}</b>${s.userId === Session.userId ? ' <span class="chip chip-green">вы</span>' : ''}</td>
         <td><code class="muted">ЕСИА · ${esc(s.userId)}</code></td>
-        <td class="r">${dateTimeRU(s.date)}</td></tr>`).join('')}</tbody>
-    </table></div>
+        <td class="r">${dateTimeRU(s.date)}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">Подписей пока нет</td></tr>'}</tbody>
+    </table></div>`, { open: list.length <= 12, hint: list.length > 12 ? 'длинный список' : '' })}</div>
   </div>`;
 }
 
@@ -410,18 +414,18 @@ function paneMoney() {
 
   <div class="card">
     <div class="card-h"><h3>Транзакции</h3><span class="chip chip-grey">${tx.length} всего</span></div>
-    <div class="tbl-wrap"><table class="tbl">
+    ${fold('Все транзакции по проекту', tx.length, `<div class="tbl-wrap"><table class="tbl">
       <thead><tr><th>Идентификатор</th><th>Плательщик</th><th class="r">Сумма</th><th>Дата и время</th><th>Способ</th><th>Статус</th></tr></thead>
       <tbody>${tx.map(t => {
         const s = TX_STATUS[t.status];
         return `<tr><td><code>${esc(t.no)}</code></td>
-          <td>${esc(t.userName)}</td>
+          <td>${esc(t.userName)}${t.payer === 'business' ? ' <span class="chip chip-violet">юрлицо</span>' : ''}</td>
           <td class="r strong">${rub(t.amount)}</td>
           <td>${dateTimeRU(t.date)}</td>
           <td>${esc(t.method)}</td>
           <td><span class="chip ${s[0]}">${s[1]}</span></td></tr>`;
       }).join('') || '<tr><td colspan="6" class="muted">Транзакций нет</td></tr>'}</tbody>
-    </table></div>
+    </table></div>`, { open: tx.length <= 10, hint: tx.length > 10 ? 'длинный список' : '' })}
     ${my.length ? `<div class="note note-g mt20"><b>Ваши взносы по этому проекту:</b>
       ${my.map(t => rub(t.amount) + ' — ' + dateRU(t.date) + ' (' + TX_STATUS[t.status][1] + ')').join('; ')}.</div>` : ''}
   </div>`;
@@ -486,6 +490,7 @@ function paneWorks() {
   const reports = DB.reports(p.id);
   const issues = DB.issues(p.id, Session.is('admin') ? {} : { published: true });
   const stMap = { done: ['chip-green', 'выполнено'], now: ['chip-amber', 'в работе'], wait: ['chip-grey', 'ожидает'] };
+  const pendCount = reports.filter(r => r.status === 'sent').length;
   const repSt = { sent: ['chip-blue', 'отправлен, ждёт приёмки'], accepted: ['chip-green', 'принят администрацией'], returned: ['chip-red', 'возвращён на доработку'] };
 
   return `<div class="card">
@@ -518,8 +523,8 @@ function paneWorks() {
 
   <div class="card">
     <div class="card-h"><h3>Отчёты подрядчика</h3>
-      <span class="chip chip-grey">${reports.length} ${plural(reports.length, 'отчёт', 'отчёта', 'отчётов')}</span></div>
-    ${reports.map(r => {
+      <span class="chip ${pendCount ? 'chip-amber' : 'chip-grey'}">${reports.length} ${plural(reports.length, 'отчёт', 'отчёта', 'отчётов')}${pendCount ? ' · ' + pendCount + ' на приёмке' : ''}</span></div>
+    ${(() => { const repCard = r => {
       const s = repSt[r.status] || repSt.sent;
       return `<div class="rep">
         <div class="between mb8">
@@ -541,7 +546,18 @@ function paneWorks() {
           <button class="btn btn-o btn-s" data-return="${r.id}">Вернуть на доработку</button>
         </div>` : ''}
       </div>`;
-    }).join('') || '<p class="muted">Отчётов пока нет.</p>'}
+    };
+    if (!reports.length) return '<p class="muted">Отчётов пока нет.</p>';
+    const pend = reports.filter(r => r.status === 'sent');
+    const past = reports.filter(r => r.status !== 'sent');
+    return (pend.length
+        ? `<p class="muted mb14">Ждут решения администрации: ${pend.length}. Принятый этап оплачивается
+           по акту КС-2, возвращённый уходит подрядчику с комментарием — и то и другое приходит ему в уведомления.</p>`
+        : '') +
+      pend.map(repCard).join('') +
+      (past.length ? fold('История принятых отчётов', past.length, past.map(repCard).join(''),
+        { open: !pend.length && past.length <= 2 }) : '');
+  })()}
   </div>
 
   <div class="card">
@@ -804,7 +820,9 @@ function drawSide() {
         <div><span>Осталось времени</span><b>${p.daysLeft ? days(p.daysLeft) : 'сбор закрыт'}</b></div>
       </div>
       ${supported ? '<div class="note note-g mt20"><b>Ваш взнос учтён.</b> Он виден в разделе «Финансы» и в вашем кабинете.</div>' : ''}
-      ${st === 'collecting' ? `<button class="btn btn-p btn-full mt20" id="pay">Поддержать проект</button>` : ''}
+      ${st === 'collecting' ? `<button class="btn btn-p btn-full mt20" id="pay">${role === 'contractor' ? 'Стать соинвестором проекта' : 'Поддержать проект'}</button>` : ''}
+      ${st === 'collecting' && role === 'contractor'
+        ? '<p class="hint muted mt8" style="font-size:12.5px">Юрлицо вправе внести инициативный платёж (ст. 70 ФЗ-33). На торги это не влияет.</p>' : ''}
       ${role === 'admin' ? `
         ${st === 'goal' ? `<button class="btn btn-g btn-full mt20" id="aPack">Сформировать пакет документов</button>` : ''}
         <button class="btn btn-o btn-full mt8" id="aRefund">Признать нереализованным и вернуть средства</button>` : ''}
@@ -866,7 +884,15 @@ function drawSide() {
         <div><span>Отчётов подано</span><b>${DB.reports(p.id).length}</b></div>
       </div>
       ${role === 'contractor' && c.contractorId === Session.userId
-        ? `<button class="btn btn-g btn-full mt20" id="cReport">Создать отчёт по этапу</button>` : ''}
+        ? `<button class="btn btn-g btn-full mt20" id="cReport">Создать отчёт по этапу</button>
+           <p class="hint muted mt8" style="font-size:12.5px">Отчёт уходит на приёмку в администрацию:
+             она принимает этап или возвращает его с замечанием — ответ придёт в ваши уведомления.</p>` : ''}
+      ${role === 'contractor' && c.contractorId !== Session.userId
+        ? `<div class="note note-a mt20"><b>Объект ведёт другой подрядчик</b> —
+             ${esc((DB.user(c.contractorId) || {}).name || 'победитель торгов')}.
+             Отчёты по этапам отправляет только он. Ваши объекты — в
+             <a href="cabinet.html">личном кабинете</a>, свободные закупки — на
+             <a href="tender.html">странице торгов</a>.</div>` : ''}
       ${role === 'citizen' ? `<button class="btn btn-o btn-full mt20" id="issueSide">Оставить замечание</button>` : ''}
       ${role === 'admin' ? `
         <button class="btn btn-d btn-full mt20" id="aReporting">Перевести в стадию отчётности</button>
@@ -969,11 +995,23 @@ function doSign() {
     : 'Подпись учтена: ' + res.count + ' из ' + p.signNeed);
 }
 
-/* ---------- Взнос ---------- */
+/* ---------- Взнос ----------
+   Платить может и житель, и организация: юрлица вправе вносить инициативные
+   платежи (ст. 70 ФЗ-33). Для бизнеса меняем подписи и суммы по умолчанию. */
 function doPay() {
-  if (!requireAuth('citizen', 'pay')) return;
+  const biz = Session.is('contractor');
+  if (!biz && !requireAuth('citizen', 'pay')) return;
+  document.getElementById('payHead').textContent = biz ? 'Софинансирование от организации' : 'Поддержать проект';
   document.getElementById('payTitle').textContent = p.title + ' · доля жителей ' + rub(p.goal) +
     ', осталось ' + rub(DB.leftToRaise(p.id));
+  document.getElementById('payBiz').style.display = biz ? '' : 'none';
+  document.getElementById('payGo').textContent = biz ? 'Внести со счёта организации' : 'Оплатить картой или СБП';
+  const sums = biz ? [10000, 25000, 50000, 100000, 250000] : [300, 500, 1000, 3000, 5000];
+  document.querySelectorAll('#amounts button').forEach((b, i) => {
+    b.dataset.v = sums[i]; b.textContent = fmt(sums[i]) + ' ₽';
+    b.classList.toggle('on', i === 1);
+  });
+  document.getElementById('paySum').value = sums[1];
   openModal('mPay');
 }
 
@@ -1139,7 +1177,7 @@ function runIntent() {
   if (it.url && !it.url.endsWith(here)) return;
   Intent.take();
   if (it.action === 'sign' && Session.is('citizen')) setTimeout(doSign, 400);
-  if (it.action === 'pay' && Session.is('citizen')) setTimeout(doPay, 400);
+  if (it.action === 'pay' && (Session.is('citizen') || Session.is('contractor'))) setTimeout(doPay, 400);
   if (it.action === 'issue' && Session.is('citizen')) setTimeout(openIssue, 400);
 }
 

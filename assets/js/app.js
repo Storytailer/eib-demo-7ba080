@@ -89,6 +89,68 @@ function adminInbox() {
   return DB.projects().filter(p => ['submitted', 'review'].includes(p.status));
 }
 
+/* ---------- Сворачиваемый блок ----------
+   Длинные списки (транзакции, подписи, отчёты, реестр) не должны занимать
+   весь экран: заголовок кликается, содержимое разворачивается.
+   Работает без JS — на нативном <details>, поэтому и печатается корректно. */
+function fold(title, count, html, opts) {
+  const o = opts || {};
+  const chip = count === null || count === undefined ? ''
+    : `<span class="chip ${o.chip || 'chip-grey'}">${count}</span>`;
+  return `<details class="fold${o.flat ? ' fold-flat' : ''}"${o.open ? ' open' : ''}>
+    <summary><span class="fold-t">${title}</span>${chip}
+      <span class="fold-hint">${o.hint || ''}</span><span class="fold-x" aria-hidden="true"></span></summary>
+    <div class="fold-b">${html}</div>
+  </details>`;
+}
+
+/* ---------- Уведомления ---------- */
+const NOTIF_ICON = {
+  application: ['📥', 'v'], status: ['🔔', ''], money: ['💳', 'ok'], bid: ['📑', 'v'],
+  tender: ['📢', ''], win: ['🏆', 'ok'], report: ['🏗️', 'wait'], issue: ['⚠️', 'wait'],
+  docs: ['📨', 'wait'], info: ['🔔', '']
+};
+function notifRow(n) {
+  const ic = NOTIF_ICON[n.kind] || NOTIF_ICON.info;
+  return `<div class="doc notif${n.read ? '' : ' unread'}" data-nt="${n.id}">
+    <span class="ic ${ic[1]}">${ic[0]}</span>
+    <div class="tx"><b>${esc(n.title)}</b><small>${esc(n.text)}</small>
+      <small class="notif-d">${dateTimeRU(n.date)}</small></div>
+    <div class="act">${n.link ? `<a class="btn btn-o btn-s" href="${n.link}">Открыть</a>` : ''}</div>
+  </div>`;
+}
+/* Карточка «Уведомления» для кабинета: сверху непрочитанные */
+function notifCard(user, limit) {
+  const list = DB.notifications(user);
+  const unread = list.filter(n => !n.read);
+  const rest = list.filter(n => n.read).slice(0, limit || 12);
+  return `<div class="card" id="notify">
+    <div class="card-h"><h3>Уведомления</h3>
+      <div class="flexr">
+        <span class="chip ${unread.length ? 'chip-red' : 'chip-grey'}">${unread.length} ${plural(unread.length, 'новое', 'новых', 'новых')}</span>
+        ${unread.length ? '<button class="btn btn-o btn-s" id="ntAll">Отметить прочитанными</button>' : ''}
+      </div>
+    </div>
+    <p class="muted mb20">Сюда приходит всё, что касается вас: решения администрации, новые заявки,
+      взносы, отчёты подрядчика и ответы на замечания. Каждое действие одной роли становится
+      задачей для другой — это и есть маршрут процесса.</p>
+    ${unread.map(notifRow).join('') || '<p class="muted mb20">Новых уведомлений нет.</p>'}
+    ${rest.length ? fold('Прочитанные', rest.length, rest.map(notifRow).join('')) : ''}
+  </div>`;
+}
+function bindNotif() {
+  const btn = document.getElementById('ntAll');
+  if (btn) btn.addEventListener('click', () => {
+    DB.markRead(Session.user);
+    toast('Уведомления отмечены прочитанными');
+    setTimeout(() => location.reload(), 500);
+  });
+  document.querySelectorAll('.notif .btn').forEach(a => a.addEventListener('click', () => {
+    const row = a.closest('.notif');
+    if (row) DB.markRead(Session.user, row.dataset.nt);
+  }));
+}
+
 /* ---------- Логотип ----------
    Знак: гексагон, урна для голосования и бюллетень с галочкой — голос жителя,
    который превращается в решение. Подпись: «ЭИБ | Электронное инициативное бюджетирование». */
@@ -236,10 +298,20 @@ function header(active) {
     ['about.html', 'О проекте', 'about'],
     ['cabinet.html', 'Кабинет', 'cabinet']
   ];
+  const unread = acc ? DB.unreadCount(acc) : 0;
+  const bell = acc
+    ? `<a class="bell${unread ? ' on' : ''}" href="cabinet.html#notify" title="Уведомления: ${unread}">
+         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.6L4.5 16h15L18 12.6V9a6 6 0 0 0-6-6z"
+           fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>
+           <path d="M9.5 19a2.5 2.5 0 0 0 5 0" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+         ${unread ? '<i>' + (unread > 9 ? '9+' : unread) + '</i>' : ''}
+       </a>`
+    : '';
   const right = acc
-    ? `<a class="who-badge" href="cabinet.html" title="Личный кабинет">
+    ? `${bell}
+       <a class="who-badge" href="cabinet.html" title="${esc(acc.full || acc.name)} · ${ROLE_LABEL[acc.role]}">
          <span class="av ${acc.badge}">${acc.init}</span>
-         <span><b>${acc.name}</b><small>${ROLE_LABEL[acc.role]}</small></span>
+         <span><b>${esc(acc.name)}</b><small>${ROLE_LABEL[acc.role]}${acc.role === 'admin' ? ' · куратор ИБ' : ''}</small></span>
        </a>
        <button class="btn btn-o btn-s btn-hide-sm" id="logout">Выйти</button>`
     : `<a class="btn btn-o btn-s btn-hide" href="login.html">Войти</a>
@@ -423,6 +495,18 @@ function demoBar() {
 
 /* ---------- Инициализация страницы ---------- */
 function mount(active) {
+  /* Демо-ссылка сразу в нужной роли: ?as=admin | citizen | contractor | guest.
+     Удобно для показа: одна ссылка открывает экран нужного участника. */
+  const as = param('as');
+  if (as && ['guest', 'citizen', 'admin', 'contractor'].includes(as)) {
+    if (as === 'guest') Session.logout(); else Session.login(as);
+    try {
+      const u = new URL(location.href);
+      u.searchParams.delete('as');
+      history.replaceState(null, '', u.pathname + (u.search || '') + (u.hash || ''));
+    } catch (e) {}
+  }
+
   const h = document.getElementById('hdr');
   if (h) h.outerHTML = header(active);
   const f = document.getElementById('ftr');

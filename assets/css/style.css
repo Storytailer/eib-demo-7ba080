@@ -520,3 +520,49 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   .facts div{flex-direction:column;gap:4px}
   .facts div b{text-align:left}
 }
+
+/* ---------- Уведомления в шапке ---------- */
+.bell{position:relative;width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);
+  display:flex;align-items:center;justify-content:center;color:var(--navy);flex:none;transition:.16s ease}
+.bell:hover{border-color:var(--blue);color:var(--blue)}
+.bell svg{width:21px;height:21px;display:block}
+.bell.on{border-color:var(--red-soft);color:var(--red)}
+.bell i{position:absolute;top:-4px;right:-4px;min-width:19px;height:19px;padding:0 5px;border-radius:999px;
+  background:var(--red);color:#fff;font-size:11px;font-weight:900;font-style:normal;
+  display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+
+/* ---------- Лента уведомлений ---------- */
+.notif{align-items:flex-start}
+.notif .tx{padding-top:2px}
+.notif small{display:block;line-height:1.4}
+.notif .notif-d{margin-top:4px;font-size:11.5px;color:var(--muted);opacity:.8}
+.notif.unread{border-color:#CBD8F5;background:linear-gradient(90deg,#F5F8FF,#fff 60%)}
+.notif.unread b::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--red);margin-left:8px;vertical-align:middle}
+
+/* ---------- Сворачиваемые блоки ---------- */
+.fold{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden}
+.fold+.fold,.doc+.fold,.fold+.doc{margin-top:10px}
+.fold>summary{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;
+  list-style:none;font-weight:800;font-size:14.5px;color:var(--navy);transition:.14s ease}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary:hover{background:var(--bg-2)}
+.fold .fold-t{flex:none}
+.fold .fold-hint{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--muted);text-align:right}
+.fold .fold-x{flex:none;width:22px;height:22px;border-radius:7px;background:var(--bg-2);position:relative;transition:.18s ease}
+.fold .fold-hint:empty+.fold-x{margin-left:auto}
+.fold .fold-x::before,.fold .fold-x::after{content:"";position:absolute;left:50%;top:50%;background:var(--navy);border-radius:2px}
+.fold .fold-x::before{width:10px;height:2px;transform:translate(-50%,-50%)}
+.fold .fold-x::after{width:2px;height:10px;transform:translate(-50%,-50%);transition:.18s ease}
+.fold[open]>summary .fold-x::after{transform:translate(-50%,-50%) scaleY(0)}
+.fold[open]>summary{border-bottom:1px solid var(--line)}
+.fold .fold-b{padding:16px}
+.fold-flat{border:none;background:transparent}
+.fold-flat>summary{padding:12px 0}
+.fold-flat>summary:hover{background:transparent;color:var(--blue)}
+.fold-flat[open]>summary{border-bottom:none}
+.fold-flat .fold-b{padding:0 0 8px}
+@media print{.fold .fold-b{display:block !important}.fold>summary .fold-x{display:none}}
+/* Таблицы внутри сворачиваемых блоков подстраиваются под ширину карточки */
+.fold .tbl{min-width:100%}
+.fold .tbl th,.fold .tbl td{padding-left:10px;padding-right:10px}
